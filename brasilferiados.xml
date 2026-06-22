@@ -1,0 +1,49 @@
+<root>
+    <name>Brasil Feriados</name>
+    <key>brasilferiados</key>
+    <state>stable</state>
+    
+    <description>
+        <short>
+            <pt_BR>Plugin GLPI que sincroniza feriados nacionais brasileiros da Brasil API e feriados locais personalizados no calendário nativo do GLPI.</pt_BR>
+        </short>
+        <long>
+            <pt_BR>Este plugin busca feriados nacionais brasileiros na Brasil API (brasilapi.com.br) e os insere na tabela nativa glpi_holidays do GLPI. Suporta sincronização anual automática via GLPI Cron (executa em 1º de Janeiro), sincronização manual para qualquer ano, feriados locais/recorrentes via campo de configuração, e associação automática dos feriados a um calendário de atendimento selecionado.</pt_BR>
+        </long>
+    </description>
+    
+    <homepage>https://github.com/andrefelipeufcg/brasilferiados</homepage>
+    <download>https://github.com/andrefelipeufcg/brasilferiados/releases</download>
+    <issues>https://github.com/andrefelipeufcg/brasilferiados/issues</issues>
+    <readme>https://raw.githubusercontent.com/andrefelipeufcg/brasilferiados/main/README.md</readme>
+    <changelog>https://github.com/andrefelipeufcg/brasilferiados/releases</changelog>
+    
+    <authors>
+        <author>andrefelipeufcg</author>
+    </authors>
+    
+    <versions>
+        <version>
+            <num>1.0.0</num>
+            <compatibility>>=11.0.0</compatibility>
+            <download_url>https://github.com/andrefelipeufcg/brasilferiados/archive/refs/tags/v1.0.0.zip</download_url>
+        </version>
+    </versions>
+    
+    <langs>
+        <lang>pt_BR</lang>
+    </langs>
+    
+    <license>GPLv3+</license>
+    
+    <tags>
+        <pt_BR>
+            <tag>feriados</tag>
+            <tag>brasil</tag>
+            <tag>calendario</tag>
+            <tag>cron</tag>
+            <tag>automacao</tag>
+            <tag>brasil-api</tag>
+        </pt_BR>
+    </tags>
+</root>
