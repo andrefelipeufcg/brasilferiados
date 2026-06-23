@@ -12,6 +12,8 @@ include("../../../inc/includes.php");
 // Permissão: somente quem pode gerenciar configurações
 Session::checkRight("config", UPDATE);
 
+
+
 // -----------------------------------------------------------------------
 // Carrega (ou cria) o registro de configuração
 // -----------------------------------------------------------------------
@@ -40,6 +42,8 @@ if (isset($_POST['update_config'])) {
     $apiUf          = trim($_POST['api_uf'] ?? '');
     $apiCidadeIbge  = trim($_POST['api_cidade_ibge'] ?? '');
 
+    $govFederalText = trim($_POST['gov_federal_text'] ?? '');
+
     // Validar provedor
     $validProviders = array_keys(PluginBrasilferiadosSync::getProviderList());
     if (!in_array($apiProvider, $validProviders)) {
@@ -61,6 +65,11 @@ if (isset($_POST['update_config'])) {
             Html::back();
         }
     }
+    
+    // Se não for Importador, limpa o texto
+    if ($apiProvider !== 'importador_gov_federal') {
+        $govFederalText = '';
+    }
 
     $config->update([
         'id'              => 1,
@@ -69,6 +78,7 @@ if (isset($_POST['update_config'])) {
         'api_token'       => $apiToken,
         'api_uf'          => $apiUf,
         'api_cidade_ibge' => $apiCidadeIbge,
+        'gov_federal_text'=> $govFederalText,
     ]);
 
     // Habilita ou desabilita fisicamente o CronTask no motor do GLPI
@@ -86,7 +96,13 @@ if (isset($_POST['update_config'])) {
         true,
         INFO
     );
-    Html::back();
+    
+    global $CFG_GLPI;
+    if ($apiProvider === 'importador_gov_federal') {
+        Html::redirect($CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php?load_national=1');
+    } else {
+        Html::back();
+    }
 }
 
 // -----------------------------------------------------------------------
@@ -156,14 +172,18 @@ $apiProvider    = $config->fields['api_provider'] ?? 'brasilapi';
 $apiToken       = $config->fields['api_token'] ?? '';
 $apiUf          = $config->fields['api_uf'] ?? '';
 $apiCidadeIbge  = $config->fields['api_cidade_ibge'] ?? '';
+$govFederalText = $config->fields['gov_federal_text'] ?? '';
 $anoAtual       = (int)date('Y');
 
 $loadedYear = $anoAtual;
 $apiHolidays = [];
 $isLoaded = false;
 
-if (isset($_POST['load_national'])) {
-    $loadedYear = (int)($_POST['load_year'] ?? $anoAtual);
+if (isset($_REQUEST['load_national'])) {
+    $loadedYear = (int)($_REQUEST['load_year'] ?? $anoAtual);
+    if ($apiProvider === 'importador_gov_federal' && preg_match('/no ano de\s*(\d{4})/i', $govFederalText, $matches)) {
+        $loadedYear = (int)$matches[1];
+    }
     $apiResult = PluginBrasilferiadosSync::fetchFromProvider($loadedYear);
     $apiHolidays = $apiResult['feriados'];
     if (!empty($apiResult['erros'])) {
@@ -242,13 +262,13 @@ echo "</table>";
 
 echo "<hr style='width: 700px; border-top: 3px solid black; margin: 20px auto 10px auto;'>";
 
-// ── Bloco: Provedor de API ──
+// ── Bloco: Provedor ──
 echo "<table class='tab_cadre_fixe' style='width: 700px;'>";
-echo "<tr><th colspan='2'>Provedor de API</th></tr>";
+echo "<tr><th colspan='2'>Provedor</th></tr>";
 
 // Dropdown do Provedor
 echo "<tr class='tab_bg_1'>";
-echo "<td style='width: 40%;'>API de Feriados</td>";
+echo "<td style='width: 40%;'>API de Feriados / Importador</td>";
 echo "<td>";
 echo "<select name='api_provider' id='api_provider_select' class='form-select' style='width: auto; display: inline-block;'>";
 foreach ($providerList as $key => $label) {
@@ -256,7 +276,7 @@ foreach ($providerList as $key => $label) {
     echo "<option value='{$key}' {$selected}>{$label}</option>";
 }
 echo "</select>";
-echo "<br><small class='text-muted'>Selecione a API que será utilizada para buscar os feriados.</small>";
+echo "<br><small class='text-muted'>Selecione API / Importador utilizado para buscar feriados.</small>";
 echo "</td>";
 echo "</tr>";
 
@@ -314,9 +334,21 @@ echo "</div>";
 echo "</td>";
 echo "</tr>";
 
+// ── Campos Dinâmicos do Importador Governo Federal ──
+$displayMgiImporter = ($apiProvider === 'importador_gov_federal') ? '' : "style='display: none;'";
+
+echo "<tr class='tab_bg_1 govfederalimporter-field' {$displayMgiImporter}>";
+echo "<td>Texto da Portaria do Governo Federal <span style='color:red;'>*</span></td>";
+echo "<td>";
+$govFederalTextEsc = htmlspecialchars($govFederalText, ENT_QUOTES);
+echo "<textarea name='gov_federal_text' id='gov_federal_text_input' class='form-control' style='width: 100%; height: 150px;' placeholder='Cole aqui todo o texto da Portaria do Governo Federal divulgada no Diário Oficial...'>{$govFederalTextEsc}</textarea>";
+echo "<br><small class='text-muted'>Copie o texto da publicação do Diário Oficial da União contendo os incisos e cole aqui. O importador identificará as datas automaticamente.</small>";
+echo "</td>";
+echo "</tr>";
+
 echo "<tr class='tab_bg_2'>";
 echo "<td colspan='2' class='center' style='padding: 10px;'>";
-echo "<button type='submit' class='btn btn-secondary'>Salvar configurações de provedor de API</button>";
+echo "<button type='submit' class='btn btn-secondary'>Salvar configurações de provedor</button>";
 echo "</td>";
 echo "</tr>";
 
@@ -415,12 +447,16 @@ if (!$isLoaded) {
             $dataFormatada = $dataOrig;
         }
 
-        $feriadosMoveis = ['Carnaval', 'Sexta-feira Santa', 'Páscoa', 'Corpus Christi'];
-        $isPerpetual = true;
-        foreach ($feriadosMoveis as $movel) {
-            if (stripos($f['name'], $movel) !== false) {
-                $isPerpetual = false;
-                break;
+        if (isset($f['is_perpetual'])) {
+            $isPerpetual = (bool)$f['is_perpetual'];
+        } else {
+            $feriadosMoveis = ['Carnaval', 'Sexta-feira Santa', 'Páscoa', 'Corpus Christi'];
+            $isPerpetual = true;
+            foreach ($feriadosMoveis as $movel) {
+                if (stripos($f['name'], $movel) !== false) {
+                    $isPerpetual = false;
+                    break;
+                }
             }
         }
         $textoRecorrente = $isPerpetual ? "Sim" : "Não";
@@ -523,12 +559,16 @@ if ($isLoaded && !empty($apiHolidays)) {
         $d = htmlspecialchars($f['date'], ENT_QUOTES);
         $n = htmlspecialchars($f['name'], ENT_QUOTES);
         
-        $feriadosMoveis = ['Carnaval', 'Sexta-feira Santa', 'Páscoa', 'Corpus Christi'];
-        $isP = 1;
-        foreach ($feriadosMoveis as $movel) {
-            if (stripos($f['name'], $movel) !== false) {
-                $isP = 0;
-                break;
+        if (isset($f['is_perpetual'])) {
+            $isP = (int)$f['is_perpetual'];
+        } else {
+            $feriadosMoveis = ['Carnaval', 'Sexta-feira Santa', 'Páscoa', 'Corpus Christi'];
+            $isP = 1;
+            foreach ($feriadosMoveis as $movel) {
+                if (stripos($f['name'], $movel) !== false) {
+                    $isP = 0;
+                    break;
+                }
             }
         }
         
@@ -596,6 +636,8 @@ echo "
     function toggleProviderFields() {
         var provider = providerSelect.value;
         var fields = document.querySelectorAll('.feriadosapi-field');
+        var mgiFields = document.querySelectorAll('.govfederalimporter-field');
+        
         for (var i = 0; i < fields.length; i++) {
             if (provider === 'feriadosapi') {
                 fields[i].style.display = '';
@@ -607,6 +649,19 @@ echo "
                 })(fields[i]), 50);
             } else {
                 fields[i].style.display = 'none';
+            }
+        }
+        
+        for (var i = 0; i < mgiFields.length; i++) {
+            if (provider === 'importador_gov_federal') {
+                mgiFields[i].style.display = '';
+                mgiFields[i].style.opacity = '0';
+                mgiFields[i].style.transition = 'opacity 0.3s ease-in';
+                setTimeout((function(el) {
+                    return function() { el.style.opacity = '1'; };
+                })(mgiFields[i]), 50);
+            } else {
+                mgiFields[i].style.display = 'none';
             }
         }
     }

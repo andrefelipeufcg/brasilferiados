@@ -234,6 +234,84 @@ class PluginBrasilferiadosFeriadosApi implements PluginBrasilferiadosApiProvider
 }
 
 // =========================================================================
+// STRATEGY 3 — Importador Governo Federal (Lê o texto da portaria do Diário Oficial)
+// =========================================================================
+class PluginBrasilferiadosGovFederalImporter implements PluginBrasilferiadosApiProvider {
+
+    public function fetchHolidays(int $year, array $config): array {
+        $resultado = ['feriados' => [], 'erros' => []];
+        $texto = $config['gov_federal_text'] ?? '';
+
+        if (empty($texto)) {
+            $resultado['erros'][] = 'Texto da portaria do Governo Federal não informado.';
+            return $resultado;
+        }
+
+        // Tenta achar o ano no texto
+        if (preg_match('/no ano de\s*(\d{4})/i', $texto, $matches)) {
+            $anoTexto = (int)$matches[1];
+            if ($anoTexto !== $year) {
+                // Apenas um aviso, vamos usar o ano que o usuário pediu ou o ano encontrado?
+                // Vamos usar o ano da tela, pois a portaria do ano X as vezes dita regras para X+1
+                // mas se encontrarmos, usamos o encontrado na portaria por segurança, ou mantemos $year
+                // Manteremos $year pois é o "Feriados do Ano YYYY" da UI.
+            }
+        }
+
+        $mesesMap = [
+            'janeiro' => '01', 'fevereiro' => '02', 'março' => '03', 'abril' => '04',
+            'maio' => '05', 'junho' => '06', 'julho' => '07', 'agosto' => '08',
+            'setembro' => '09', 'outubro' => '10', 'novembro' => '11', 'dezembro' => '12'
+        ];
+
+        // Match: I - 1º de janeiro, Confraternização Universal (feriado nacional)
+        // Group 3 (o nome do feriado) agora é opcional, pois as vezes vem apenas "20 de abril (ponto facultativo)"
+        $pattern = '/(\d{1,2})(?:º)?\s+de\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:[\s,.-]+(.*?))?\s*\(((?:feriado|ponto facultativo|facultativo)[^)]*)\)/iu';
+
+        if (!preg_match_all($pattern, $texto, $matches, PREG_SET_ORDER)) {
+            $resultado['erros'][] = 'Nenhum feriado ou ponto facultativo encontrado. Verifique se o texto colado contém o formato padrão da portaria.';
+            return $resultado;
+        }
+
+        foreach ($matches as $m) {
+            $dia = str_pad($m[1], 2, '0', STR_PAD_LEFT);
+            $mesStr = mb_strtolower($m[2]);
+            $mes = $mesesMap[$mesStr] ?? '01';
+            
+            $nome = trim($m[3] ?? '');
+            $nome = ltrim($nome, '- '); // limpa traços sobressalentes
+            if (empty($nome)) {
+                $nome = 'Ponto Facultativo';
+            }
+            
+            $tipo = mb_strtolower(trim($m[4]));
+            // Se contiver exatamente "feriado nacional", é recorrente. Senão, não é.
+            $is_perpetual = (strpos($tipo, 'feriado nacional') !== false) ? 1 : 0;
+
+            $resultado['feriados'][] = [
+                'date' => "$year-$mes-$dia",
+                'name' => $nome,
+                'is_perpetual' => $is_perpetual
+            ];
+        }
+
+        return $resultado;
+    }
+
+    public function getName(): string {
+        return 'Importador Governo Federal';
+    }
+
+    public function requiresToken(): bool {
+        return false;
+    }
+
+    public function requiresLocation(): bool {
+        return false;
+    }
+}
+
+// =========================================================================
 // CLASSE PRINCIPAL — Sincronização de feriados
 // =========================================================================
 class PluginBrasilferiadosSync extends CommonDBTM {
@@ -254,8 +332,9 @@ class PluginBrasilferiadosSync extends CommonDBTM {
     // ===================================================================
     /** @var array<string, class-string<PluginBrasilferiadosApiProvider>> */
     private static array $providers = [
-        'brasilapi'   => PluginBrasilferiadosBrasilApi::class,
-        'feriadosapi' => PluginBrasilferiadosFeriadosApi::class,
+        'brasilapi'              => PluginBrasilferiadosBrasilApi::class,
+        'feriadosapi'            => PluginBrasilferiadosFeriadosApi::class,
+        'importador_gov_federal' => PluginBrasilferiadosGovFederalImporter::class,
     ];
 
     /**

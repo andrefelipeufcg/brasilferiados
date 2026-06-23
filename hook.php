@@ -22,6 +22,7 @@ function plugin_brasilferiados_install() {
             `api_token`         VARCHAR(255) NOT NULL DEFAULT '',
             `api_uf`            VARCHAR(2)   NOT NULL DEFAULT '',
             `api_cidade_ibge`   VARCHAR(10)  NOT NULL DEFAULT '',
+            `gov_federal_text`  TEXT         NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
@@ -36,6 +37,7 @@ function plugin_brasilferiados_install() {
             'api_token'       => '',
             'api_uf'          => '',
             'api_cidade_ibge' => '',
+            'gov_federal_text'=> '',
         ]);
     } else {
         // Upgrade: adiciona colunas novas caso a tabela já exista (v1.0.0 → v1.1.0)
@@ -44,6 +46,7 @@ function plugin_brasilferiados_install() {
             'api_token'       => "VARCHAR(255) NOT NULL DEFAULT ''",
             'api_uf'          => "VARCHAR(2)   NOT NULL DEFAULT ''",
             'api_cidade_ibge' => "VARCHAR(10)  NOT NULL DEFAULT ''",
+            'gov_federal_text'=> "TEXT         NULL",
         ];
         foreach ($newColumns as $col => $definition) {
             if (!$DB->fieldExists('glpi_plugin_brasilferiados_configs', $col)) {
