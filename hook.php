@@ -15,9 +15,13 @@ function plugin_brasilferiados_install() {
     // 1) Tabela de configuração geral do plugin
     if (!$DB->tableExists('glpi_plugin_brasilferiados_configs')) {
         $query = "CREATE TABLE `glpi_plugin_brasilferiados_configs` (
-            `id`              INT          NOT NULL AUTO_INCREMENT,
-            `is_active`       TINYINT      NOT NULL DEFAULT 0,
-            `calendars_id`    INT          NOT NULL DEFAULT 0,
+            `id`                INT          NOT NULL AUTO_INCREMENT,
+            `is_active`         TINYINT      NOT NULL DEFAULT 0,
+            `calendars_id`      INT          NOT NULL DEFAULT 0,
+            `api_provider`      VARCHAR(50)  NOT NULL DEFAULT 'brasilapi',
+            `api_token`         VARCHAR(255) NOT NULL DEFAULT '',
+            `api_uf`            VARCHAR(2)   NOT NULL DEFAULT '',
+            `api_cidade_ibge`   VARCHAR(10)  NOT NULL DEFAULT '',
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
@@ -25,10 +29,30 @@ function plugin_brasilferiados_install() {
         $DB->executeStatement($stmt);
 
         $DB->insert('glpi_plugin_brasilferiados_configs', [
-            'id'            => 1,
-            'is_active'     => 0,
-            'calendars_id'  => 0,
+            'id'              => 1,
+            'is_active'       => 0,
+            'calendars_id'    => 0,
+            'api_provider'    => 'brasilapi',
+            'api_token'       => '',
+            'api_uf'          => '',
+            'api_cidade_ibge' => '',
         ]);
+    } else {
+        // Upgrade: adiciona colunas novas caso a tabela já exista (v1.0.0 → v1.1.0)
+        $newColumns = [
+            'api_provider'    => "VARCHAR(50)  NOT NULL DEFAULT 'brasilapi'",
+            'api_token'       => "VARCHAR(255) NOT NULL DEFAULT ''",
+            'api_uf'          => "VARCHAR(2)   NOT NULL DEFAULT ''",
+            'api_cidade_ibge' => "VARCHAR(10)  NOT NULL DEFAULT ''",
+        ];
+        foreach ($newColumns as $col => $definition) {
+            if (!$DB->fieldExists('glpi_plugin_brasilferiados_configs', $col)) {
+                $DB->doQuery(
+                    "ALTER TABLE `glpi_plugin_brasilferiados_configs`
+                     ADD COLUMN `{$col}` {$definition}"
+                );
+            }
+        }
     }
 
     // 2) Tabela de feriados locais (CRUD)
@@ -54,7 +78,7 @@ function plugin_brasilferiados_install() {
             'BrasilFeriados',
             DAY_TIMESTAMP,
             [
-                'comment'   => 'Sincronizar feriados brasileiros via Brasil API',
+                'comment'   => 'Sincronizar feriados brasileiros via API configurada',
                 'mode'      => CronTask::MODE_EXTERNAL,
                 'state'     => CronTask::STATE_WAITING,
                 'hourmin'   => 0,

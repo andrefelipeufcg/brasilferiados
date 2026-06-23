@@ -2,8 +2,11 @@
 /**
  * -----------------------------------------------------------------------
  * Brasil Feriados — sync.class.php
- * Classe de sincronização: consome a Brasil API e insere feriados
+ * Classe de sincronização: consome APIs de feriados brasileiros e insere
  * na tabela nativa glpi_holidays do GLPI.
+ *
+ * Padrão Strategy: cada provedor de API é uma classe concreta que
+ * implementa PluginBrasilferiadosApiProvider.
  * -----------------------------------------------------------------------
  */
 
@@ -11,6 +14,228 @@ if (!defined('GLPI_ROOT')) {
     die("Desculpe. Você não pode acessar este arquivo diretamente.");
 }
 
+// =========================================================================
+// INTERFACE — Contrato que todo provedor de API deve seguir
+// =========================================================================
+interface PluginBrasilferiadosApiProvider {
+    /**
+     * Busca feriados de um dado ano, retornando um array normalizado.
+     *
+     * @param  int   $year   Ano no formato YYYY
+     * @param  array $config Configurações do plugin (api_token, api_uf, api_cidade_ibge, etc.)
+     * @return array ['feriados' => [['date' => 'YYYY-MM-DD', 'name' => '...']], 'erros' => []]
+     */
+    public function fetchHolidays(int $year, array $config): array;
+
+    /** Nome amigável do provedor (exibido na interface). */
+    public function getName(): string;
+
+    /** Se o provedor requer um token de autenticação. */
+    public function requiresToken(): bool;
+
+    /** Se o provedor requer seleção de localidade (UF/cidade). */
+    public function requiresLocation(): bool;
+}
+
+// =========================================================================
+// STRATEGY 1 — BrasilAPI (gratuita, somente feriados nacionais)
+// Endpoint: GET https://brasilapi.com.br/api/feriados/v1/{ano}
+// Formato:  [{ "date": "YYYY-MM-DD", "name": "...", "type": "national" }]
+// =========================================================================
+class PluginBrasilferiadosBrasilApi implements PluginBrasilferiadosApiProvider {
+
+    public function fetchHolidays(int $year, array $config): array {
+        $resultado = ['feriados' => [], 'erros' => []];
+        $url = "https://brasilapi.com.br/api/feriados/v1/{$year}";
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_USERAGENT      => 'GLPI-BrasilFeriados/1.1',
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr  = curl_error($ch);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || $response === false) {
+            $resultado['erros'][] = sprintf(
+                'Falha na requisição à Brasil API (HTTP %s): %s',
+                $httpCode,
+                $curlErr ?: 'resposta vazia'
+            );
+            return $resultado;
+        }
+
+        $feriadosApi = json_decode($response, true);
+        if (!is_array($feriadosApi)) {
+            $resultado['erros'][] = 'JSON inválido retornado pela Brasil API.';
+            return $resultado;
+        }
+
+        // Normalizar: BrasilAPI já retorna { date: "YYYY-MM-DD", name: "..." }
+        foreach ($feriadosApi as $f) {
+            if (!empty($f['date']) && !empty($f['name'])) {
+                $resultado['feriados'][] = [
+                    'date' => $f['date'],
+                    'name' => $f['name'],
+                ];
+            }
+        }
+
+        return $resultado;
+    }
+
+    public function getName(): string {
+        return 'Brasil API';
+    }
+
+    public function requiresToken(): bool {
+        return false;
+    }
+
+    public function requiresLocation(): bool {
+        return false;
+    }
+}
+
+// =========================================================================
+// STRATEGY 2 — FeriadosAPI (com token, feriados por cidade/IBGE)
+// Endpoint: GET https://feriadosapi.com/api/v1/feriados/cidade/{ibge}?ano={ano}
+// Header:   Authorization: Bearer {token}
+// Formato:  { "feriados": [{ "data": "DD/MM/YYYY", "nome": "...", "tipo": "..." }] }
+// =========================================================================
+class PluginBrasilferiadosFeriadosApi implements PluginBrasilferiadosApiProvider {
+
+    public function fetchHolidays(int $year, array $config): array {
+        $resultado = ['feriados' => [], 'erros' => []];
+
+        $token = trim($config['api_token'] ?? '');
+        $ibge  = trim($config['api_cidade_ibge'] ?? '');
+
+        if (empty($token)) {
+            $resultado['erros'][] = 'Token da FeriadosAPI não configurado. Acesse a configuração do plugin.';
+            return $resultado;
+        }
+        if (empty($ibge)) {
+            $resultado['erros'][] = 'Cidade (código IBGE) não configurada para a FeriadosAPI.';
+            return $resultado;
+        }
+
+        $url = "https://feriadosapi.com/api/v1/feriados/cidade/{$ibge}?ano={$year}";
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_USERAGENT      => 'GLPI-BrasilFeriados/1.1',
+            CURLOPT_HTTPHEADER     => [
+                "Authorization: Bearer {$token}",
+                'Accept: application/json',
+            ],
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr  = curl_error($ch);
+        curl_close($ch);
+
+        if ($httpCode === 401 || $httpCode === 403) {
+            $errorMsg = 'Token inválido ou sem permissão';
+            if ($response !== false) {
+                $jsonErr = json_decode($response, true);
+                if (isset($jsonErr['message'])) {
+                    $errorMsg = $jsonErr['message'];
+                } elseif (isset($jsonErr['error'])) {
+                    $errorMsg = $jsonErr['error'];
+                }
+            }
+            $resultado['erros'][] = sprintf(
+                'FeriadosAPI: %s (HTTP %s). Verifique seu token e plano no painel.',
+                $errorMsg,
+                $httpCode
+            );
+            return $resultado;
+        }
+
+        if ($httpCode !== 200 || $response === false) {
+            $resultado['erros'][] = sprintf(
+                'Falha na requisição à FeriadosAPI (HTTP %s): %s',
+                $httpCode,
+                $curlErr ?: 'resposta vazia'
+            );
+            return $resultado;
+        }
+
+        $json = json_decode($response, true);
+        if (!is_array($json) || !isset($json['feriados'])) {
+            $resultado['erros'][] = 'JSON inválido ou formato inesperado da FeriadosAPI.';
+            return $resultado;
+        }
+
+        // Normalizar: converter data DD/MM/YYYY → YYYY-MM-DD
+        foreach ($json['feriados'] as $f) {
+            $dataOriginal = $f['data'] ?? '';
+            $nome         = $f['nome'] ?? '';
+
+            if (empty($dataOriginal) || empty($nome)) {
+                continue;
+            }
+
+            $date = self::converterData($dataOriginal);
+            if ($date === null) {
+                $resultado['erros'][] = sprintf(
+                    'FeriadosAPI: data inválida "%s" para o feriado "%s".',
+                    $dataOriginal,
+                    $nome
+                );
+                continue;
+            }
+
+            $resultado['feriados'][] = [
+                'date' => $date,
+                'name' => $nome,
+            ];
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * Converte data do formato DD/MM/YYYY para YYYY-MM-DD.
+     */
+    private static function converterData(string $data): ?string {
+        // Tenta DD/MM/YYYY
+        if (preg_match('#^(\d{2})/(\d{2})/(\d{4})$#', $data, $m)) {
+            return "{$m[3]}-{$m[2]}-{$m[1]}";
+        }
+        // Tenta YYYY-MM-DD (caso a API já retorne neste formato)
+        if (preg_match('#^\d{4}-\d{2}-\d{2}$#', $data)) {
+            return $data;
+        }
+        return null;
+    }
+
+    public function getName(): string {
+        return 'Feriados API';
+    }
+
+    public function requiresToken(): bool {
+        return true;
+    }
+
+    public function requiresLocation(): bool {
+        return true;
+    }
+}
+
+// =========================================================================
+// CLASSE PRINCIPAL — Sincronização de feriados
+// =========================================================================
 class PluginBrasilferiadosSync extends CommonDBTM {
 
     // ===================================================================
@@ -25,54 +250,73 @@ class PluginBrasilferiadosSync extends CommonDBTM {
     }
 
     // ===================================================================
-    // MÉTODO PRINCIPAL — Sincroniza feriados para um dado $year
+    // REGISTRY — Mapa de provedores disponíveis
     // ===================================================================
+    /** @var array<string, class-string<PluginBrasilferiadosApiProvider>> */
+    private static array $providers = [
+        'brasilapi'   => PluginBrasilferiadosBrasilApi::class,
+        'feriadosapi' => PluginBrasilferiadosFeriadosApi::class,
+    ];
+
     /**
-     * Consulta a Brasil API e retorna o array de feriados ou erros.
+     * Retorna a lista de provedores para popular dropdowns.
+     * @return array ['brasilapi' => 'Brasil API', 'feriadosapi' => 'Feriados API']
      */
-    public static function fetchFromApi(int $year): array {
-        $resultado = ['feriados' => [], 'erros' => []];
-        $url = "https://brasilapi.com.br/api/feriados/v1/{$year}";
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 30,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_USERAGENT      => 'GLPI-BrasilFeriados/1.0',
-        ]);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlErr  = curl_error($ch);
-        curl_close($ch);
-
-        if ($httpCode !== 200 || $response === false) {
-            $resultado['erros'][] = sprintf(
-                'Falha na requisição à Brasil API (HTTP %s): %s',
-                $httpCode,
-                $curlErr ?: 'resposta vazia'
-            );
+    public static function getProviderList(): array {
+        $list = [];
+        foreach (self::$providers as $key => $class) {
+            $instance = new $class();
+            $list[$key] = $instance->getName();
         }
-
-        if ($httpCode === 200 && $response !== false) {
-            $feriadosApi = json_decode($response, true);
-            if (!is_array($feriadosApi)) {
-                $resultado['erros'][] = 'JSON inválido retornado pela Brasil API.';
-            } else {
-                $resultado['feriados'] = $feriadosApi;
-            }
-        }
-
-        return $resultado;
+        return $list;
     }
 
     /**
-     * Insere os feriados na tabela nativa glpi_holidays.
-     *
+     * Instancia o provedor correto a partir do nome armazenado no banco.
+     */
+    public static function getProvider(string $providerName): PluginBrasilferiadosApiProvider {
+        $class = self::$providers[$providerName] ?? self::$providers['brasilapi'];
+        return new $class();
+    }
+
+    // ===================================================================
+    // MÉTODO PRINCIPAL — Busca feriados usando o provedor configurado
+    // ===================================================================
+    /**
+     * Consulta a API configurada e retorna o array normalizado de feriados.
+     */
+    public static function fetchFromProvider(int $year, ?array $configOverride = null): array {
+        if ($configOverride === null) {
+            $config = new self();
+            if ($config->getFromDB(1)) {
+                $configOverride = $config->fields;
+            } else {
+                $configOverride = ['api_provider' => 'brasilapi'];
+            }
+        }
+
+        $providerName = $configOverride['api_provider'] ?? 'brasilapi';
+        $provider = self::getProvider($providerName);
+
+        return $provider->fetchHolidays($year, $configOverride);
+    }
+
+    /**
+     * Compatibilidade retroativa — chama o provedor configurado.
+     * @deprecated Use fetchFromProvider() em vez deste método.
+     */
+    public static function fetchFromApi(int $year): array {
+        return self::fetchFromProvider($year);
+    }
+
+    // ===================================================================
+    // SINCRONIZAÇÃO — Insere feriados no GLPI (manual e automática)
+    // ===================================================================
+    /**
      * @param  int        $year               Ano no formato YYYY
      * @param  array|null $feriadosNacionais  Opcional. Se null, busca da API. Se array, usa o fornecido.
      * @param  bool       $isAuto             Se true, cria um calendário automaticamente na entidade raiz.
+     * @param  int        $manualCalendarId   ID do calendário selecionado manualmente.
      * @return array                          ['inseridos' => int, 'ignorados' => int, 'erros' => string[]]
      */
     public static function sincronizarFeriados(int $year, ?array $feriadosNacionais = null, bool $isAuto = false, int $manualCalendarId = 0): array {
@@ -82,9 +326,9 @@ class PluginBrasilferiadosSync extends CommonDBTM {
             'erros'     => [],
         ];
 
-        // Se não foi fornecido um array pré-carregado, busca da API (útil para o CronTask)
+        // Se não foi fornecido um array pré-carregado, busca da API configurada
         if ($feriadosNacionais === null) {
-            $apiResult = self::fetchFromApi($year);
+            $apiResult = self::fetchFromProvider($year);
             $feriadosNacionais = $apiResult['feriados'];
             if (!empty($apiResult['erros'])) {
                 $resultado['erros'] = array_merge($resultado['erros'], $apiResult['erros']);
@@ -102,7 +346,8 @@ class PluginBrasilferiadosSync extends CommonDBTM {
         }
 
         // ---------------------------------------------------------------
-        // 2) Inserir feriados nacionais
+        // 2) Inserir feriados da API (nacionais, estaduais e/ou municipais
+        //    dependendo do provedor configurado)
         // ---------------------------------------------------------------
         foreach ($feriadosNacionais as $f) {
             $data = $f['date'] ?? '';
@@ -112,14 +357,17 @@ class PluginBrasilferiadosSync extends CommonDBTM {
                 continue;
             }
 
-            // Feriados móveis no Brasil (Carnaval, Paixão de Cristo, Páscoa, Corpus Christi)
-            $feriadosMoveis = ['Carnaval', 'Sexta-feira Santa', 'Páscoa', 'Corpus Christi'];
-            $isPerpetual = 1; // Por padrão, feriados nacionais como Natal e Tiradentes são recorrentes (fixos)
-            
-            foreach ($feriadosMoveis as $movel) {
-                if (stripos($nome, $movel) !== false) {
-                    $isPerpetual = 0;
-                    break;
+            $isPerpetual = 1; // Por padrão, feriados fixos são recorrentes
+            if (isset($f['is_perpetual'])) {
+                $isPerpetual = (int)$f['is_perpetual'];
+            } else {
+                // Feriados móveis no Brasil (Carnaval, Paixão de Cristo, Páscoa, Corpus Christi)
+                $feriadosMoveis = ['Carnaval', 'Sexta-feira Santa', 'Páscoa', 'Corpus Christi'];
+                foreach ($feriadosMoveis as $movel) {
+                    if (stripos($nome, $movel) !== false) {
+                        $isPerpetual = 0;
+                        break;
+                    }
                 }
             }
 
@@ -150,12 +398,16 @@ class PluginBrasilferiadosSync extends CommonDBTM {
             return 0;
         }
 
+        $providerName = $config->fields['api_provider'] ?? 'brasilapi';
+        $provider = self::getProvider($providerName);
+
         $year      = (int)date('Y');
         $resultado = self::sincronizarFeriados($year, null, true);
 
         $msg = sprintf(
-            'Ano %d — Inseridos: %d | Ignorados (duplicados): %d',
+            'Ano %d — Provedor: %s | Inseridos: %d | Ignorados (duplicados): %d',
             $year,
+            $provider->getName(),
             $resultado['inseridos'],
             $resultado['ignorados']
         );
@@ -177,7 +429,7 @@ class PluginBrasilferiadosSync extends CommonDBTM {
     public static function cronInfo(string $name): array {
         if ($name === 'BrasilFeriados') {
             return [
-                'description' => 'Sincronizar feriados brasileiros via Brasil API',
+                'description' => 'Sincronizar feriados brasileiros via API configurada',
             ];
         }
         return [];
