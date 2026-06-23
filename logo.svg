@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+    <!-- Fundo Verde (Bandeira do Brasil) -->
+    <rect width="100" height="100" rx="18" fill="#009C3B"/>
+    
+    <!-- Losango Amarelo (Aumentado até as pontas) -->
+    <polygon points="50,0 100,50 50,100 0,50" fill="#FFDF00"/>
+    
+    <!-- Círculo Azul -->
+    <circle cx="50" cy="50" r="32" fill="#002776"/>
+    
+    <!-- Sombra suave para dar profundidade na janela -->
+    <rect x="25" y="26" width="52" height="52" rx="4" fill="#001a4d" opacity="0.4"/>
+
+    <!-- Janela/Browser Base (Linhas Azuis Escuras) -->
+    <rect x="24" y="24" width="52" height="52" rx="4" fill="#FFFFFF" stroke="#002776" stroke-width="2.5" stroke-linejoin="round"/>
+    
+    <!-- Barra superior da janela -->
+    <line x1="24" y1="32" x2="76" y2="32" stroke="#002776" stroke-width="2.5"/>
+    
+    <!-- Botões (pontinhos) na barra superior -->
+    <circle cx="30" cy="28" r="1.5" fill="#002776"/>
+    <circle cx="35" cy="28" r="1.5" fill="#002776"/>
+    <circle cx="40" cy="28" r="1.5" fill="#002776"/>
+    
+    <!-- Linha do lado direito na barra -->
+    <line x1="66" y1="28" x2="70" y2="28" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    
+    <!-- Ondas do Mar -->
+    <path d="M 24 67 Q 28 64, 32.6 67 T 41.3 67 T 50 67 T 58.6 67 T 67.3 67 Q 71.6 64, 76 67" fill="none" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    
+    <!-- Sol -->
+    <circle cx="36" cy="45" r="4.5" fill="none" stroke="#002776" stroke-width="2.5"/>
+    <!-- Raios do Sol -->
+    <line x1="36" y1="38" x2="36" y2="35.5" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="36" y1="52" x2="36" y2="54.5" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="29" y1="45" x2="26.5" y2="45" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="43" y1="45" x2="45.5" y2="45" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="31" y1="40" x2="29.2" y2="38.2" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="41" y1="50" x2="42.8" y2="51.8" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="41" y1="40" x2="42.8" y2="38.2" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="31" y1="50" x2="29.2" y2="51.8" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Ilha / Areia -->
+    <path d="M 33 67 Q 50 50, 67 67" fill="none" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    
+    <!-- Guarda-Sol (inclinado, idêntico a image_3.png) -->
+    <g transform="translate(56, 49) rotate(25)">
+        <!-- Haste do guarda-sol -->
+        <line x1="0" y1="0" x2="0" y2="11.5" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+        
+        <!-- Toldo do guarda-sol (com preenchimento branco) -->
+        <path d="M -11 0 A 11 11 0 0 1 11 0 Q 7.3 -3 3.6 0 Q 0 -3 -3.6 0 Q -7.3 -3 -11 0 Z" fill="#FFFFFF" stroke="#002776" stroke-width="2.5" stroke-linejoin="round"/>
+        
+        <!-- Listras do toldo -->
+        <path d="M -3.6 0 Q -2 -6 0 -11 M 3.6 0 Q 2 -6 0 -11" fill="none" stroke="#002776" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+</svg>
