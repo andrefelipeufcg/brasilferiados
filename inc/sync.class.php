@@ -28,22 +28,10 @@ class PluginBrasilferiadosSync extends CommonDBTM {
     // MÉTODO PRINCIPAL — Sincroniza feriados para um dado $year
     // ===================================================================
     /**
-     * Busca feriados na Brasil API e nos feriados locais cadastrados,
-     * inserindo-os na tabela nativa glpi_holidays.
-     *
-     * @param  int  $year  Ano no formato YYYY
-     * @return array       ['inseridos' => int, 'ignorados' => int, 'erros' => string[]]
+     * Consulta a Brasil API e retorna o array de feriados ou erros.
      */
-    public static function sincronizarFeriados(int $year): array {
-        $resultado = [
-            'inseridos' => 0,
-            'ignorados' => 0,
-            'erros'     => [],
-        ];
-
-        // ---------------------------------------------------------------
-        // 1) Consultar a Brasil API
-        // ---------------------------------------------------------------
+    public static function fetchFromApi(int $year): array {
+        $resultado = ['feriados' => [], 'erros' => []];
         $url = "https://brasilapi.com.br/api/feriados/v1/{$year}";
 
         $ch = curl_init($url);
@@ -67,22 +55,56 @@ class PluginBrasilferiadosSync extends CommonDBTM {
             );
         }
 
-        $feriadosApi = [];
         if ($httpCode === 200 && $response !== false) {
             $feriadosApi = json_decode($response, true);
             if (!is_array($feriadosApi)) {
                 $resultado['erros'][] = 'JSON inválido retornado pela Brasil API.';
-                $feriadosApi = [];
+            } else {
+                $resultado['feriados'] = $feriadosApi;
             }
         }
 
-        // Lê o calendário configurado pelo administrador
-        $calendarsId = self::obterCalendarioConfigurado();
+        return $resultado;
+    }
+
+    /**
+     * Insere os feriados na tabela nativa glpi_holidays.
+     *
+     * @param  int        $year               Ano no formato YYYY
+     * @param  array|null $feriadosNacionais  Opcional. Se null, busca da API. Se array, usa o fornecido.
+     * @param  bool       $isAuto             Se true, cria um calendário automaticamente na entidade raiz.
+     * @return array                          ['inseridos' => int, 'ignorados' => int, 'erros' => string[]]
+     */
+    public static function sincronizarFeriados(int $year, ?array $feriadosNacionais = null, bool $isAuto = false, int $manualCalendarId = 0): array {
+        $resultado = [
+            'inseridos' => 0,
+            'ignorados' => 0,
+            'erros'     => [],
+        ];
+
+        // Se não foi fornecido um array pré-carregado, busca da API (útil para o CronTask)
+        if ($feriadosNacionais === null) {
+            $apiResult = self::fetchFromApi($year);
+            $feriadosNacionais = $apiResult['feriados'];
+            if (!empty($apiResult['erros'])) {
+                $resultado['erros'] = array_merge($resultado['erros'], $apiResult['erros']);
+            }
+        }
+
+        if ($isAuto) {
+            $calendarsId = self::obterOuCriarCalendarioAutomatico($year);
+        } else {
+            $calendarsId = $manualCalendarId;
+            if ($calendarsId === 0) {
+                $resultado['erros'][] = 'Calendário Principal não configurado. Sincronização cancelada.';
+                return $resultado;
+            }
+        }
 
         // ---------------------------------------------------------------
-        // 2) Inserir feriados nacionais (da API)
+        // 2) Inserir feriados nacionais
         // ---------------------------------------------------------------
-        foreach ($feriadosApi as $f) {
+        foreach ($feriadosNacionais as $f) {
             $data = $f['date'] ?? '';
             $nome = $f['name'] ?? '';
 
@@ -90,13 +112,24 @@ class PluginBrasilferiadosSync extends CommonDBTM {
                 continue;
             }
 
-            self::inserirFeriado($data, $nome, $calendarsId, $resultado);
+            // Feriados móveis no Brasil (Carnaval, Paixão de Cristo, Páscoa, Corpus Christi)
+            $feriadosMoveis = ['Carnaval', 'Sexta-feira Santa', 'Páscoa', 'Corpus Christi'];
+            $isPerpetual = 1; // Por padrão, feriados nacionais como Natal e Tiradentes são recorrentes (fixos)
+            
+            foreach ($feriadosMoveis as $movel) {
+                if (stripos($nome, $movel) !== false) {
+                    $isPerpetual = 0;
+                    break;
+                }
+            }
+
+            self::inserirFeriado($data, $nome, $calendarsId, $resultado, $isPerpetual);
         }
 
         // ---------------------------------------------------------------
         // 3) Inserir feriados locais (da tabela CRUD)
         // ---------------------------------------------------------------
-        self::sincronizarFeriadosLocais($year, $calendarsId, $resultado);
+        self::sincronizarFeriadosLocais($year, $calendarsId, $resultado, $isAuto);
 
         return $resultado;
     }
@@ -111,8 +144,14 @@ class PluginBrasilferiadosSync extends CommonDBTM {
             return 0;
         }
 
+        // O CronTask roda com frequência diária, mas só executamos de fato no Ano Novo.
+        if (date('m-d') !== '01-01') {
+            $task->log('Hoje não é 1º de Janeiro. Pulando.');
+            return 0;
+        }
+
         $year      = (int)date('Y');
-        $resultado = self::sincronizarFeriados($year);
+        $resultado = self::sincronizarFeriados($year, null, true);
 
         $msg = sprintf(
             'Ano %d — Inseridos: %d | Ignorados (duplicados): %d',
@@ -155,22 +194,37 @@ class PluginBrasilferiadosSync extends CommonDBTM {
         string $data,
         string $nome,
         int    $calendarsId,
-        array  &$resultado
+        array  &$resultado,
+        int    $isPerpetual = 0
     ): void {
         global $DB;
 
         $existente = $DB->request([
-            'SELECT' => 'id',
+            'SELECT' => ['id', 'name', 'is_perpetual'],
             'FROM'   => 'glpi_holidays',
             'WHERE'  => [
                 'begin_date' => $data,
                 'end_date'   => $data,
-                'name'       => $nome,
             ],
         ]);
 
         if (count($existente) > 0) {
             $resultado['ignorados']++;
+            $row = $existente->current();
+            $feriadoId = (int)$row['id'];
+            
+            if ($row['name'] !== $nome || (int)$row['is_perpetual'] !== $isPerpetual) {
+                $h = new Holiday();
+                $h->update([
+                    'id'   => $feriadoId,
+                    'name' => $nome,
+                    'is_perpetual' => $isPerpetual
+                ]);
+            }
+
+            if ($calendarsId > 0) {
+                self::vincularFeriadoAoCalendario($feriadoId, $calendarsId);
+            }
             return;
         }
 
@@ -179,7 +233,7 @@ class PluginBrasilferiadosSync extends CommonDBTM {
             'name'         => $nome,
             'begin_date'   => $data,
             'end_date'     => $data,
-            'is_perpetual' => 0,
+            'is_perpetual' => $isPerpetual,
             'is_recursive' => 1,
         ]);
 
@@ -226,17 +280,22 @@ class PluginBrasilferiadosSync extends CommonDBTM {
     }
 
     /**
-     * Processa feriados locais recorrentes (da tabela CRUD).
+     * Processa feriados locais (da tabela CRUD).
      * Lê todos os registros da tabela glpi_plugin_brasilferiados_locais,
      * monta a data YYYY-MM-DD com o $year informado e insere.
      */
-    private static function sincronizarFeriadosLocais(int $year, int $calendarsId, array &$resultado): void {
+    private static function sincronizarFeriadosLocais(int $year, int $calendarsId, array &$resultado, bool $isAuto = false): void {
         $feriadosLocais = PluginBrasilferiadosLocal::listarTodos();
 
         foreach ($feriadosLocais as $fl) {
-            $dia  = (int)$fl['dia'];
-            $mes  = (int)$fl['mes'];
-            $nome = $fl['nome'];
+            $dia          = (int)$fl['dia'];
+            $mes          = (int)$fl['mes'];
+            $nome         = $fl['nome'];
+            $is_perpetual = isset($fl['is_perpetual']) ? (int)$fl['is_perpetual'] : 1;
+
+            if ($isAuto && $is_perpetual === 0) {
+                continue; // Auto-Sync não pega feriados locais "Não Recorrentes"
+            }
 
             if (!checkdate($mes, $dia, $year)) {
                 $resultado['erros'][] = sprintf(
@@ -247,7 +306,7 @@ class PluginBrasilferiadosSync extends CommonDBTM {
             }
 
             $data = sprintf('%04d-%02d-%02d', $year, $mes, $dia);
-            self::inserirFeriado($data, $nome, $calendarsId, $resultado);
+            self::inserirFeriado($data, $nome, $calendarsId, $resultado, $is_perpetual);
         }
     }
 
@@ -260,5 +319,37 @@ class PluginBrasilferiadosSync extends CommonDBTM {
             return (int)($config->fields['calendars_id'] ?? 0);
         }
         return 0;
+    }
+
+    /**
+     * Cria ou retorna um calendário chamado "Calendário YYYY" na entidade raiz.
+     */
+    private static function obterOuCriarCalendarioAutomatico(int $year): int {
+        global $DB;
+        $nome = "Calendário {$year}";
+
+        $existente = $DB->request([
+            'SELECT' => 'id',
+            'FROM'   => 'glpi_calendars',
+            'WHERE'  => [
+                'name'        => $nome,
+                'entities_id' => 0
+            ],
+            'LIMIT'  => 1
+        ]);
+
+        if (count($existente) > 0) {
+            $row = $existente->current();
+            return (int)$row['id'];
+        }
+
+        $cal = new Calendar();
+        $calId = $cal->add([
+            'name'         => $nome,
+            'entities_id'  => 0,
+            'is_recursive' => 1
+        ]);
+
+        return (int)$calId;
     }
 }

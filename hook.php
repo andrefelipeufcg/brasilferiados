@@ -31,13 +31,14 @@ function plugin_brasilferiados_install() {
         ]);
     }
 
-    // 2) Tabela de feriados locais recorrentes (CRUD)
+    // 2) Tabela de feriados locais (CRUD)
     if (!$DB->tableExists('glpi_plugin_brasilferiados_locais')) {
         $query = "CREATE TABLE `glpi_plugin_brasilferiados_locais` (
-            `id`    INT          NOT NULL AUTO_INCREMENT,
-            `dia`   INT          NOT NULL,
-            `mes`   INT          NOT NULL,
-            `nome`  VARCHAR(255) NOT NULL DEFAULT '',
+            `id`            INT          NOT NULL AUTO_INCREMENT,
+            `dia`           INT          NOT NULL,
+            `mes`           INT          NOT NULL,
+            `nome`          VARCHAR(255) NOT NULL DEFAULT '',
+            `is_perpetual`  TINYINT      NOT NULL DEFAULT 1,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 

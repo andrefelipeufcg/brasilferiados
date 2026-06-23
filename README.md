@@ -1,6 +1,6 @@
 # Brasil Feriados — Plugin GLPI 11
 
-> Sincroniza automaticamente os feriados nacionais brasileiros (via [Brasil API](https://brasilapi.com.br)) e feriados locais recorrentes na tabela nativa `glpi_holidays` do GLPI, com associação automática ao calendário de atendimento.
+> Sincroniza automaticamente os feriados nacionais brasileiros (via [Brasil API](https://brasilapi.com.br)) e feriados locais na tabela nativa `glpi_holidays` do GLPI, com associação automática ao calendário de atendimento.
 
 ---
 
@@ -8,12 +8,12 @@
 
 | Recurso | Descrição |
 |---|---|
-| **Feriados Nacionais** | Consome a Brasil API para importar todos os feriados nacionais do ano selecionado |
-| **Feriados Locais (CRUD)** | Grid completo para cadastrar, editar e excluir feriados municipais/estaduais recorrentes |
-| **Sincronização Manual** | Botão para importar feriados de qualquer ano sob demanda |
-| **Sincronização Automática** | Ação automática (CronTask) que executa todo 1º de Janeiro para importar o novo ano |
-| **Vínculo com Calendário** | Associa automaticamente os feriados inseridos ao calendário de atendimento selecionado |
-| **Anti-duplicidade** | Verifica `begin_date` + `name` antes de inserir, evitando registros duplicados |
+| **Feriados Nacionais** | Consome a Brasil API para importar todos os feriados nacionais do ano selecionado. Identifica automaticamente feriados móveis (Carnaval, Páscoa, etc.) definindo-os como não-recorrentes. |
+| **Feriados Locais (CRUD)** | Grid completo para cadastrar, editar e excluir feriados municipais/estaduais, permitindo escolher se são Recorrentes (anuais) ou Não Recorrentes (apenas para aquele ano). |
+| **Sincronização Manual** | Botão para importar feriados (Nacionais + Locais) do ano carregado sob demanda, associando-os a um Calendário Principal à sua escolha. |
+| **Sincronização Automática** | Ação automática (CronTask) que executa todo 1º de Janeiro para criar um "Calendário YYYY" com todos os feriados do ano corrente (Nacionais via API + Locais Recorrentes). |
+| **Vínculo com Calendário** | Associa automaticamente os feriados inseridos ao calendário na tabela `glpi_calendars_holidays`. |
+| **Anti-duplicidade** | Verifica `begin_date` + `name` antes de inserir, evitando registros duplicados e atualizando a recorrência se necessário. |
 
 ---
 
@@ -42,39 +42,35 @@
 
 ## 🖥️ Interface de Configuração
 
-A tela de configuração (`Configurar > Plugins > Brasil Feriados`) possui três seções:
+A tela de configuração (`Configurar > Plugins > Brasil Feriados`) é dividida em blocos bem definidos:
 
-### Seção 1 — Configuração da Automação
+### 1. Sincronização Automática
 
 | Campo | Descrição |
 |---|---|
-| **Sincronização automática de Ano Novo** | Checkbox que habilita/desabilita a ação automática. Quando ativada, o GLPI CronTask executará a importação dos feriados do ano corrente todo dia 1º de Janeiro. |
-| **Calendário Principal de Atendimento** | Dropdown com os calendários cadastrados no GLPI. Os feriados importados serão automaticamente vinculados a este calendário na tabela `glpi_calendars_holidays`. |
+| **Sincronização automática de Ano Novo** | Checkbox que habilita a ação automática. Quando ativada, o GLPI CronTask executará a importação dos feriados do ano corrente todo dia 1º de Janeiro, criando automaticamente o calendário na entidade raiz com os feriados Nacionais da API e os Locais Recorrentes. |
 
-### Seção 2 — Feriados Locais Recorrentes (Grid CRUD)
+### 2. Sincronização Manual
 
-Grid interativo para gerenciar feriados municipais/estaduais que se repetem todo ano:
+Permite importar sob demanda. É composta pelos seguintes elementos:
 
+#### Feriados Nacionais do ano
+Permite escolher um ano e carregar a listagem que vem da Brasil API. Exibe colunas como Data, Nome e a indicação de "Recorrente" (Sim/Não). Feriados móveis como Carnaval e Páscoa são marcados como Não Recorrentes automaticamente.
+**Nota:** O ano selecionado nesta seção é o que será utilizado na Sincronização Manual.
+
+#### Feriados Locais
+Grid interativo para gerenciar feriados municipais/estaduais.
 | Recurso | Descrição |
 |---|---|
-| **Grid** | Exibe todos os feriados locais cadastrados com colunas Data (DD/MM) e Nome |
-| **Adicionar** | Botão que abre formulário com campos Dia, Mês (dropdown) e Nome do Feriado |
-| **Editar** | Botão de edição por registro, abre formulário pré-preenchido |
-| **Excluir** | Botão de exclusão com confirmação — remove direto do banco de dados |
-| **Validação** | Verifica duplicidade, valida datas com `checkdate()` e campos obrigatórios |
+| **Grid** | Exibe todos os feriados locais cadastrados, com Data, Nome e se são Recorrentes. |
+| **Adicionar/Editar** | Permite incluir um novo feriado escolhendo Dia, Mês, Nome e a flag "Recorrente". Feriados Não Recorrentes são ignorados pela Sincronização Automática. |
+| **Excluir** | Remove o registro de feriado local. |
 
-**Exemplos de feriados locais:**
-- 24/06: São João
-- 11/10: Aniversário da Cidade
-- 20/11: Dia da Consciência Negra
-- 08/12: Nossa Senhora da Conceição
+#### Calendário Principal de Atendimento
+Dropdown para selecionar qual calendário do GLPI receberá a carga da Sincronização Manual.
 
-### Seção 3 — Sincronização Manual
-
-| Campo | Descrição |
-|---|---|
-| **Ano** | Campo numérico (2001–2099) que define qual ano será importado. |
-| **Sincronizar Agora** | Botão que dispara a importação imediata dos feriados nacionais + locais do ano indicado. |
+#### Botão Sincronizar Agora
+Dispara a importação imediata dos feriados nacionais (do ano carregado) + locais (todos, caso manual) para o calendário selecionado.
 
 ---
 
@@ -84,7 +80,7 @@ O plugin registra uma tarefa chamada **BrasilFeriados** nas Ações Automáticas
 
 - **Frequência**: Diária (roda 1x/dia)
 - **Janela de execução**: 00:00 – 02:00
-- **Comportamento**: Só executa a sincronização se o checkbox "Sincronização automática de Ano Novo" estiver marcado na configuração.
+- **Comportamento**: Cria o calendário do ano vigente na raiz, busca feriados na API (nacionais) e cruza com a base local (onde Recorrente = Sim), registrando-os. 
 
 > ⚠️ Para que a ação automática funcione, o CRON externo do GLPI deve estar configurado (via crontab ou agendador de tarefas do servidor).
 
@@ -99,12 +95,12 @@ brasilferiados/
 ├── setup.php                       # Inicialização, versão e pré-requisitos
 ├── hook.php                        # Install (cria tabelas + CronTask) / Uninstall
 ├── front/
-│   ├── config.form.php             # Configuração, grid de feriados locais, sync manual
-│   └── local.form.php              # Formulário de inserção / edição de feriado local
+│   ├── config.form.php             # Tela de Configuração completa (layout e forms)
+│   └── local.form.php              # Controller POST do CRUD de feriados locais
 ├── inc/
-│   ├── sync.class.php              # PluginBrasilferiadosSync (lógica de negócio)
-│   └── local.class.php             # PluginBrasilferiadosLocal (CRUD feriados locais)
-└── README.md
+│   ├── sync.class.php              # PluginBrasilferiadosSync (Sincronização Cron e Manual)
+│   └── local.class.php             # PluginBrasilferiadosLocal (CRUD feriados locais na BD)
+└── README.md                       # Documentação
 ```
 
 ---
@@ -117,20 +113,21 @@ brasilferiados/
 -- Configuração geral
 glpi_plugin_brasilferiados_configs
 ├── id              INT (PK, AUTO_INCREMENT)
-├── is_active       TINYINT (0 = desativado, 1 = ativado)
-└── calendars_id    INT (FK → glpi_calendars.id, 0 = nenhum)
+└── is_active       TINYINT (0 = desativado, 1 = ativado)
 
--- Feriados locais recorrentes (CRUD)
+-- Feriados locais (CRUD)
 glpi_plugin_brasilferiados_locais
-├── id    INT (PK, AUTO_INCREMENT)
-├── dia   INT (1-31)
-├── mes   INT (1-12)
-└── nome  VARCHAR(255)
+├── id              INT (PK, AUTO_INCREMENT)
+├── dia             INT (1-31)
+├── mes             INT (1-12)
+├── nome            VARCHAR(255)
+└── is_perpetual    TINYINT (0 = não, 1 = sim)
 ```
 
 ### Tabelas Nativas Utilizadas
 - `glpi_holidays` — Inserção dos feriados via classe `Holiday::add()`
 - `glpi_calendars_holidays` — Vínculo feriado ↔ calendário via `Calendar_Holiday::add()`
+- `glpi_calendars` — Criação dinâmica de calendários anuais via Sincronização Automática
 
 ---
 
@@ -139,13 +136,9 @@ glpi_plugin_brasilferiados_locais
 - **CSRF**: Plugin declarado como `csrf_compliant`. Tokens CSRF em todos os formulários.
 - **Permissões**: Acesso restrito a usuários com direito `config` + `UPDATE`.
 - **Validação**: Anos 2001–2099. Datas validadas com `checkdate()`. Verificação de duplicidade no grid e na inserção.
-- **Confirmação**: Exclusão de feriado local exige confirmação do usuário.
 
 ---
 
 ## 📜 Licença
 
 Este plugin é software livre, distribuído sob os termos da **GNU General Public License** versão 3 ou posterior (GPLv3+).
-
----
-*Desenvolvido com 🇧🇷 para a comunidade GLPI.*

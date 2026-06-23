@@ -2,7 +2,7 @@
 /**
  * -----------------------------------------------------------------------
  * Brasil Feriados — feriadolocal.class.php
- * Classe CRUD para feriados locais recorrentes.
+ * Classe CRUD para feriados locais.
  * -----------------------------------------------------------------------
  */
 
