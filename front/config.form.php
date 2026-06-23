@@ -30,10 +30,22 @@ if (!$config->getFromDB(1)) {
 // POST: Salvar configuração
 // -----------------------------------------------------------------------
 if (isset($_POST['update_config'])) {
+    $isActive = isset($_POST['is_active']) ? 1 : 0;
+    
     $config->update([
         'id'            => 1,
-        'is_active'     => isset($_POST['is_active']) ? 1 : 0
+        'is_active'     => $isActive
     ]);
+
+    // Habilita ou desabilita fisicamente o CronTask no motor do GLPI
+    $crontask = new CronTask();
+    if ($crontask->getFromDBbyName('PluginBrasilferiadosSync', 'BrasilFeriados')) {
+        $state = $isActive ? CronTask::STATE_WAITING : CronTask::STATE_DISABLE;
+        $crontask->update([
+            'id'    => $crontask->fields['id'],
+            'state' => $state
+        ]);
+    }
 
     Session::addMessageAfterRedirect(
         'Configuração salva com sucesso.',
