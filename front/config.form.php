@@ -215,13 +215,8 @@ echo "<table class='tab_cadre_fixe' style='width: 700px;'>";
 echo "<tr class='tab_bg_2'>";
 echo "<th colspan='4' style='text-align: left; padding: 10px;'>Feriados Nacionais do ano ";
 
-if ($isActive) {
-    echo "<input type='number' name='load_year' id='sync_year_input' value='$loadedYear' readonly style='width: 90px; margin-left: 10px;' class='form-control d-inline-block'>";
-    echo "<small style='margin-left: 15px; font-weight: normal; color: #666;'><i class='fas fa-lock'></i> Sincronização Automática Ativa (Somente Consulta)</small>";
-} else {
     echo "<input type='number' name='load_year' id='sync_year_input' value='$loadedYear' min='2001' max='2099' style='width: 90px; margin-left: 10px;' class='form-control d-inline-block'>";
     echo "<button type='submit' name='load_national' value='1' class='btn btn-warning' style='margin-left: 10px; color: white;'>Carregar Feriados</button>";
-}
 
 echo "</th>";
 echo "</tr>";
@@ -276,14 +271,10 @@ if (!$isLoaded) {
         echo "<td class='center'>$textoRecorrente</td>";
         echo "<td class='center'>";
         
-        if (!$isActive) {
-            // Botão Excluir Visual (Remove a linha via JS)
-            echo "<button type='button' class='btn btn-sm btn-outline-danger' title='Excluir' onclick='removerFeriadoNacional($idx)'>";
-            echo "<i class='fas fa-trash-alt'></i>";
-            echo "</button>";
-        } else {
-            echo "<span style='color: #ccc;'><i class='fas fa-lock'></i></span>";
-        }
+        // Botão Excluir Visual (Remove a linha via JS)
+        echo "<button type='button' class='btn btn-sm btn-outline-danger' title='Excluir' onclick='removerFeriadoNacional($idx)'>";
+        echo "<i class='fas fa-trash-alt'></i>";
+        echo "</button>";
         
         echo "</td>";
         echo "</tr>";
