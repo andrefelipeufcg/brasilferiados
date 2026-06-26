@@ -69,6 +69,15 @@ if (isset($_POST['update_config'])) {
     // Se não for Importador, limpa o texto
     if ($apiProvider !== 'importador_gov_federal') {
         $govFederalText = '';
+    } else {
+        if (empty($govFederalText)) {
+            Session::addMessageAfterRedirect(
+                'Importador Governo Federal: O texto da portaria é obrigatório.',
+                false,
+                ERROR
+            );
+            Html::back();
+        }
     }
 
     $config->update([
@@ -761,6 +770,12 @@ echo "
             if (!token || !uf || !cidade) {
                 e.preventDefault();
                 alert('Feriados API selecionada: Os campos Token da API, Estado (UF) e Cidade são obrigatórios para salvar a configuração.');
+            }
+        } else if (providerSelect && providerSelect.value === 'importador_gov_federal') {
+            var textoGov = document.getElementById('gov_federal_text_input') ? document.getElementById('gov_federal_text_input').value.trim() : '';
+            if (!textoGov) {
+                e.preventDefault();
+                alert('Importador Governo Federal: O texto da portaria é obrigatório para salvar a configuração.');
             }
         }
     });
