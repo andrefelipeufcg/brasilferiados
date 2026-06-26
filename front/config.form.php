@@ -138,7 +138,14 @@ if (isset($_POST['sync_now'])) {
         if (is_array($nationalHolidays)) {
             foreach ($nationalHolidays as $nh) {
                 if (isset($nh['date']) && isset($nh['name'])) {
-                    $nacionais[] = ['date' => $nh['date'], 'name' => $nh['name']];
+                    $item = [
+                        'date' => $nh['date'],
+                        'name' => $nh['name']
+                    ];
+                    if (isset($nh['is_perpetual'])) {
+                        $item['is_perpetual'] = (int)$nh['is_perpetual'];
+                    }
+                    $nacionais[] = $item;
                 }
             }
         }
