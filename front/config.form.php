@@ -795,15 +795,6 @@ function validarSincronizacao() {
     document.getElementById('hidden_sync_year').value = syncYearInput;
     var isActive = " . $isActive . ";
     
-    var calDropdown = document.querySelector(\"select[name='calendars_id']\");
-    var currentCalId = calDropdown ? parseInt(calDropdown.value) : 0;
-    
-    if (currentCalId === 0) {
-        alert('O \"Calendário Principal de Atendimento\" é obrigatório para a sincronização manual.\\n\\nPor favor, selecione-o no menu dropdown acima e tente novamente.');
-        return false;
-    }
-    document.getElementById('hidden_manual_cal').value = currentCalId;
-
     if (isActive === 0) {
         if (loadedYear === 0) {
             alert('Você deve Carregar os Feriados do ano desejado antes de sincronizar.');
@@ -815,6 +806,15 @@ function validarSincronizacao() {
             return false;
         }
     }
+
+    var calDropdown = document.querySelector(\"select[name='calendars_id']\");
+    var currentCalId = calDropdown ? parseInt(calDropdown.value) : 0;
+    
+    if (currentCalId === 0) {
+        alert('O \"Calendário Principal de Atendimento\" é obrigatório para a sincronização manual.\\n\\nPor favor, selecione-o no menu dropdown abaixo e tente novamente.');
+        return false;
+    }
+    document.getElementById('hidden_manual_cal').value = currentCalId;
     
     if (confirm('Prosseguir com a Sincronização Manual do ano ' + syncYearInput + '?')) {
         document.getElementById('real_sync_btn').click();
