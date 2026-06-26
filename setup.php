@@ -12,7 +12,7 @@
  * -----------------------------------------------------------------------
  */
 
-define('PLUGIN_BRASILFERIADOS_VERSION', '1.0.0');
+define('PLUGIN_BRASILFERIADOS_VERSION', '1.1.0');
 define('PLUGIN_BRASILFERIADOS_MIN_GLPI', '11.0.0');
 
 // -----------------------------------------------------------------------
@@ -35,7 +35,7 @@ function plugin_init_brasilferiados() {
     // tarefa ao método estático cronBrasilFeriados() da classe indicada.
     $PLUGIN_HOOKS['cron']['brasilferiados'] = [
         'BrasilFeriados' => [
-            'description' => 'Sincronizar feriados brasileiros via Brasil API',
+            'description' => 'Sincronizar feriados brasileiros via API configurada',
             'parameter'   => null,
         ],
     ];
