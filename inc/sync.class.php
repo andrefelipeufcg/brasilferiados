@@ -81,7 +81,7 @@ class PluginBrasilferiadosBrasilApi implements PluginBrasilferiadosApiProvider {
             if (!empty($f['date']) && !empty($f['name'])) {
                 $resultado['feriados'][] = [
                     'date' => $f['date'],
-                    'name' => $f['name'],
+                    'name' => strip_tags($f['name']), // Prevenção contra Stored XSS
                 ];
             }
         }
@@ -114,7 +114,8 @@ class PluginBrasilferiadosFeriadosApi implements PluginBrasilferiadosApiProvider
         $resultado = ['feriados' => [], 'erros' => []];
 
         $token = trim($config['api_token'] ?? '');
-        $ibge  = trim($config['api_cidade_ibge'] ?? '');
+        // Prevenção contra injeção de URL (SSRF): IBGE deve ser puramente numérico
+        $ibge  = preg_replace('/[^0-9]/', '', trim($config['api_cidade_ibge'] ?? ''));
 
         if (empty($token)) {
             $resultado['erros'][] = 'Token da FeriadosAPI não configurado. Acesse a configuração do plugin.';
@@ -198,7 +199,7 @@ class PluginBrasilferiadosFeriadosApi implements PluginBrasilferiadosApiProvider
 
             $resultado['feriados'][] = [
                 'date' => $date,
-                'name' => $nome,
+                'name' => strip_tags($nome), // Prevenção de Stored XSS
             ];
         }
 
@@ -290,7 +291,7 @@ class PluginBrasilferiadosGovFederalImporter implements PluginBrasilferiadosApiP
 
             $resultado['feriados'][] = [
                 'date' => "$year-$mes-$dia",
-                'name' => $nome,
+                'name' => strip_tags($nome), // Prevenção de Stored XSS
                 'is_perpetual' => $is_perpetual
             ];
         }
