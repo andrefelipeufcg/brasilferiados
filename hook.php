@@ -15,9 +15,9 @@ function plugin_brasilferiados_install() {
     // 1) Tabela de configuração geral do plugin
     if (!$DB->tableExists('glpi_plugin_brasilferiados_configs')) {
         $query = "CREATE TABLE `glpi_plugin_brasilferiados_configs` (
-            `id`                INT          NOT NULL AUTO_INCREMENT,
+            `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `is_active`         TINYINT      NOT NULL DEFAULT 0,
-            `calendars_id`      INT          NOT NULL DEFAULT 0,
+            `calendars_id`      INT UNSIGNED NOT NULL DEFAULT 0,
             `api_provider`      VARCHAR(50)  NOT NULL DEFAULT 'brasilapi',
             `api_token`         VARCHAR(255) NOT NULL DEFAULT '',
             `api_uf`            VARCHAR(2)   NOT NULL DEFAULT '',
@@ -61,7 +61,7 @@ function plugin_brasilferiados_install() {
     // 2) Tabela de feriados locais (CRUD)
     if (!$DB->tableExists('glpi_plugin_brasilferiados_locais')) {
         $query = "CREATE TABLE `glpi_plugin_brasilferiados_locais` (
-            `id`            INT          NOT NULL AUTO_INCREMENT,
+            `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `dia`           INT          NOT NULL,
             `mes`           INT          NOT NULL,
             `nome`          VARCHAR(255) NOT NULL DEFAULT '',
