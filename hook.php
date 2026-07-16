@@ -6,11 +6,14 @@
  * -----------------------------------------------------------------------
  */
 
+use GlpiPlugin\Brasilferiados\Sync;
+
 // -----------------------------------------------------------------------
 // INSTALL — Cria as tabelas de configuração e registra a ação automática
 // -----------------------------------------------------------------------
 function plugin_brasilferiados_install() {
     global $DB;
+    $migration = new Migration(PLUGIN_BRASILFERIADOS_VERSION);
 
     // 1) Tabela de configuração geral do plugin
     if (!$DB->tableExists('glpi_plugin_brasilferiados_configs')) {
@@ -26,8 +29,7 @@ function plugin_brasilferiados_install() {
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
-        $stmt = $DB->prepare($query);
-        $DB->executeStatement($stmt);
+        $DB->doQuery($query);
 
         $DB->insert('glpi_plugin_brasilferiados_configs', [
             'id'              => 1,
@@ -40,22 +42,11 @@ function plugin_brasilferiados_install() {
             'gov_federal_text'=> '',
         ]);
     } else {
-        // Upgrade: adiciona colunas novas caso a tabela já exista (v1.0.0 → v1.1.0)
-        $newColumns = [
-            'api_provider'    => "VARCHAR(50)  NOT NULL DEFAULT 'brasilapi'",
-            'api_token'       => "VARCHAR(255) NOT NULL DEFAULT ''",
-            'api_uf'          => "VARCHAR(2)   NOT NULL DEFAULT ''",
-            'api_cidade_ibge' => "VARCHAR(10)  NOT NULL DEFAULT ''",
-            'gov_federal_text'=> "TEXT         NULL",
-        ];
-        foreach ($newColumns as $col => $definition) {
-            if (!$DB->fieldExists('glpi_plugin_brasilferiados_configs', $col)) {
-                $DB->doQuery(
-                    "ALTER TABLE `glpi_plugin_brasilferiados_configs`
-                     ADD COLUMN `{$col}` {$definition}"
-                );
-            }
-        }
+        $migration->addField('glpi_plugin_brasilferiados_configs', 'api_provider', "VARCHAR(50) NOT NULL DEFAULT 'brasilapi'");
+        $migration->addField('glpi_plugin_brasilferiados_configs', 'api_token', "VARCHAR(255) NOT NULL DEFAULT ''");
+        $migration->addField('glpi_plugin_brasilferiados_configs', 'api_uf', "VARCHAR(2) NOT NULL DEFAULT ''");
+        $migration->addField('glpi_plugin_brasilferiados_configs', 'api_cidade_ibge', "VARCHAR(10) NOT NULL DEFAULT ''");
+        $migration->addField('glpi_plugin_brasilferiados_configs', 'gov_federal_text', "TEXT NULL");
     }
 
     // 2) Tabela de feriados locais (CRUD)
@@ -69,15 +60,16 @@ function plugin_brasilferiados_install() {
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
-        $stmt = $DB->prepare($query);
-        $DB->executeStatement($stmt);
+        $DB->doQuery($query);
     }
 
-    // 3) Registrar ação automática no CronTask (se ainda não existir)
+    $migration->executeMigration();
+
+    // 3) Registrar ação automática no CronTask
     $crontask = new CronTask();
-    if (!$crontask->getFromDBbyName('PluginBrasilferiadosSync', 'BrasilFeriados')) {
+    if (!$crontask->getFromDBbyName(Sync::class, 'BrasilFeriados') && !$crontask->getFromDBbyName('PluginBrasilferiadosSync', 'BrasilFeriados')) {
         CronTask::register(
-            'PluginBrasilferiadosSync',
+            Sync::class,
             'BrasilFeriados',
             DAY_TIMESTAMP,
             [
@@ -108,6 +100,10 @@ function plugin_brasilferiados_uninstall() {
     }
 
     $crontask = new CronTask();
+    if ($crontask->getFromDBbyName(Sync::class, 'BrasilFeriados')) {
+        $crontask->delete(['id' => $crontask->fields['id']]);
+    }
+    // Delete old legacy class crontask if exists
     if ($crontask->getFromDBbyName('PluginBrasilferiadosSync', 'BrasilFeriados')) {
         $crontask->delete(['id' => $crontask->fields['id']]);
     }

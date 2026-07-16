@@ -12,7 +12,7 @@
  * -----------------------------------------------------------------------
  */
 
-define('PLUGIN_BRASILFERIADOS_VERSION', '1.1.0');
+define('PLUGIN_BRASILFERIADOS_VERSION', '1.1.1');
 define('PLUGIN_BRASILFERIADOS_MIN_GLPI', '11.0.0');
 
 // -----------------------------------------------------------------------
@@ -27,15 +27,14 @@ function plugin_init_brasilferiados() {
     // Página de configuração acessível em Configurar > Plugins
     $PLUGIN_HOOKS['config_page']['brasilferiados'] = 'front/config.form.php';
 
-    // Registra as classes do plugin para que o autoloader do GLPI as encontre
-    Plugin::registerClass('PluginBrasilferiadosSync', ['addtabon' => []]);
-    Plugin::registerClass('PluginBrasilferiadosLocal');
+    // Registra as classes do plugin com PSR-4
+    Plugin::registerClass(\GlpiPlugin\Brasilferiados\Sync::class, ['addtabon' => []]);
+    Plugin::registerClass(\GlpiPlugin\Brasilferiados\Local::class);
 
-    // Registra o hook de cron: o GLPI lê o array e associa o nome da
-    // tarefa ao método estático cronBrasilFeriados() da classe indicada.
+    // Registra o hook de cron
     $PLUGIN_HOOKS['cron']['brasilferiados'] = [
-        'BrasilFeriados' => [
-            'description' => 'Sincronizar feriados brasileiros via API configurada',
+        \GlpiPlugin\Brasilferiados\Sync::class => [
+            'description' => __('Sincronizar feriados brasileiros via API configurada', 'brasilferiados'),
             'parameter'   => null,
         ],
     ];

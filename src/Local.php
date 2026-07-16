@@ -1,23 +1,27 @@
 <?php
 /**
  * -----------------------------------------------------------------------
- * Brasil Feriados — feriadolocal.class.php
+ * Brasil Feriados — src/Local.php
  * Classe CRUD para feriados locais.
  * -----------------------------------------------------------------------
  */
+
+namespace GlpiPlugin\Brasilferiados;
+
+use CommonDBTM;
 
 if (!defined('GLPI_ROOT')) {
     die("Desculpe. Você não pode acessar este arquivo diretamente.");
 }
 
-class PluginBrasilferiadosLocal extends CommonDBTM {
+class Local extends CommonDBTM {
 
     public static function getTable($classname = '') {
         return 'glpi_plugin_brasilferiados_locais';
     }
 
     static function getTypeName($nb = 0) {
-        return 'Feriados Locais';
+        return __('Feriados Locais', 'brasilferiados');
     }
 
     /**

@@ -17,7 +17,7 @@ Session::checkRight("config", UPDATE);
 // -----------------------------------------------------------------------
 // Carrega (ou cria) o registro de configuração
 // -----------------------------------------------------------------------
-$config = new PluginBrasilferiadosSync();
+$config = new \GlpiPlugin\Brasilferiados\Sync();
 if (!$config->getFromDB(1)) {
     global $DB;
     $DB->insert('glpi_plugin_brasilferiados_configs', [
@@ -36,6 +36,7 @@ if (!$config->getFromDB(1)) {
 // POST: Salvar configuração
 // -----------------------------------------------------------------------
 if (isset($_POST['update_config'])) {
+    Session::checkCSRF();
     $isActive = isset($_POST['is_active']) ? 1 : 0;
     $apiProvider    = $_POST['api_provider'] ?? 'brasilapi';
     $apiToken       = trim($_POST['api_token'] ?? '');
@@ -45,7 +46,7 @@ if (isset($_POST['update_config'])) {
     $govFederalText = trim($_POST['gov_federal_text'] ?? '');
 
     // Validar provedor
-    $validProviders = array_keys(PluginBrasilferiadosSync::getProviderList());
+    $validProviders = array_keys(\GlpiPlugin\Brasilferiados\Sync::getProviderList());
     if (!in_array($apiProvider, $validProviders)) {
         $apiProvider = 'brasilapi';
     }
@@ -58,7 +59,7 @@ if (isset($_POST['update_config'])) {
     } else {
         if (empty($apiToken) || empty($apiUf) || empty($apiCidadeIbge)) {
             Session::addMessageAfterRedirect(
-                'Feriados API selecionada: Os campos Token, Estado e Cidade são obrigatórios.',
+                __('Feriados API selecionada: Os campos Token, Estado e Cidade são obrigatórios.', 'brasilferiados'),
                 false,
                 ERROR
             );
@@ -72,7 +73,7 @@ if (isset($_POST['update_config'])) {
     } else {
         if (empty($govFederalText)) {
             Session::addMessageAfterRedirect(
-                'Importador Governo Federal: O texto da portaria é obrigatório.',
+                __('Importador Governo Federal: O texto da portaria é obrigatório.', 'brasilferiados'),
                 false,
                 ERROR
             );
@@ -101,7 +102,7 @@ if (isset($_POST['update_config'])) {
     }
 
     Session::addMessageAfterRedirect(
-        'Configuração salva com sucesso.',
+        __('Configuração salva com sucesso.', 'brasilferiados'),
         true,
         INFO
     );
@@ -118,17 +119,18 @@ if (isset($_POST['update_config'])) {
 // POST: Sincronização manual
 // -----------------------------------------------------------------------
 if (isset($_POST['sync_now'])) {
+    Session::checkCSRF();
     $year = (int)($_POST['sync_year'] ?? date('Y'));
     $loadedYear = (int)($_POST['loaded_year'] ?? 0);
     $manualCalendarId = (int)($_POST['manual_calendars_id'] ?? 0);
     $nationalHolidays = $_POST['national_holidays'] ?? [];
 
     if ($year < 2001 || $year > 2099) {
-        Session::addMessageAfterRedirect('Por favor, informe um ano válido entre 2001 e 2099.', false, ERROR);
+        Session::addMessageAfterRedirect(__('Por favor, informe um ano válido entre 2001 e 2099.', 'brasilferiados'), false, ERROR);
         Html::back();
     }
 
-    $configCheck = new PluginBrasilferiadosSync();
+    $configCheck = new \GlpiPlugin\Brasilferiados\Sync();
     $configCheck->getFromDB(1);
     $isAct = (int)($configCheck->fields['is_active'] ?? 0);
 
@@ -136,7 +138,7 @@ if (isset($_POST['sync_now'])) {
         // Automação desligada: O usuário precisa carregar o ano idêntico antes de sincronizar
         if ($year !== $loadedYear) {
             Session::addMessageAfterRedirect(
-                "Você precisa 'Carregar Feriados' do ano {$year} no grid acima antes de sincronizar.",
+                sprintf(__("Você precisa 'Carregar Feriados' do ano %d no grid acima antes de sincronizar.", 'brasilferiados'), $year),
                 false,
                 ERROR
             );
@@ -158,14 +160,14 @@ if (isset($_POST['sync_now'])) {
                 }
             }
         }
-        $resultado = PluginBrasilferiadosSync::sincronizarFeriados($year, $nacionais, false, $manualCalendarId);
+        $resultado = \GlpiPlugin\Brasilferiados\Sync::sincronizarFeriados($year, $nacionais, false, $manualCalendarId);
     } else {
         // Automação ativada: Ignora exclusões manuais e bate na API nativamente
-        $resultado = PluginBrasilferiadosSync::sincronizarFeriados($year, null, false, $manualCalendarId);
+        $resultado = \GlpiPlugin\Brasilferiados\Sync::sincronizarFeriados($year, null, false, $manualCalendarId);
     }
 
     $msg = sprintf(
-        'Ano %d — Inseridos: %d | Ignorados (duplicados): %d',
+        __('Ano %d — Inseridos: %d | Ignorados (duplicados): %d', 'brasilferiados'),
         $year,
         $resultado['inseridos'],
         $resultado['ignorados']
@@ -200,7 +202,7 @@ if (isset($_REQUEST['load_national'])) {
     if ($apiProvider === 'importador_gov_federal' && preg_match('/no ano de\s*(\d{4})/i', $govFederalText, $matches)) {
         $loadedYear = (int)$matches[1];
     }
-    $apiResult = PluginBrasilferiadosSync::fetchFromProvider($loadedYear);
+    $apiResult = \GlpiPlugin\Brasilferiados\Sync::fetchFromProvider($loadedYear);
     $apiHolidays = $apiResult['feriados'];
     if (!empty($apiResult['erros'])) {
         foreach ($apiResult['erros'] as $err) {
@@ -212,7 +214,7 @@ if (isset($_REQUEST['load_national'])) {
 } else if ($isActive) {
     // Se automação está ativa, carrega sempre o ano atual automaticamente para consulta
     $loadedYear = $anoAtual;
-    $apiResult = PluginBrasilferiadosSync::fetchFromProvider($loadedYear);
+    $apiResult = \GlpiPlugin\Brasilferiados\Sync::fetchFromProvider($loadedYear);
     $apiHolidays = $apiResult['feriados'];
     $isLoaded = true;
 }
@@ -259,7 +261,7 @@ global $CFG_GLPI;
 $form_url = $CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php';
 
 // Obter nome do provedor ativo para exibição
-$providerList = PluginBrasilferiadosSync::getProviderList();
+$providerList = \GlpiPlugin\Brasilferiados\Sync::getProviderList();
 $providerLabel = $providerList[$apiProvider] ?? 'Brasil API';
 
 // =====================================================================
@@ -504,7 +506,7 @@ echo "</div>";
 // =====================================================================
 // SEÇÃO 3 — Grid de Feriados Locais Recorrentes
 // =====================================================================
-$feriadosLocais = PluginBrasilferiadosLocal::listarTodos();
+$feriadosLocais = \GlpiPlugin\Brasilferiados\Local::listarTodos();
 
 echo "<div class='center' style='margin-top: 20px;'>";
 echo "<table class='tab_cadre_fixe' style='width: 700px;'>";
@@ -528,7 +530,7 @@ if (empty($feriadosLocais)) {
 } else {
     foreach ($feriadosLocais as $fl) {
         $dataFormatada = sprintf('%02d/%02d', $fl['dia'], $fl['mes']);
-        $nomeEsc       = htmlspecialchars($fl['nome']);
+        $nomeEsc       = htmlspecialchars($fl['nome'], ENT_QUOTES);
         $flId          = (int)$fl['id'];
         $flDia         = (int)$fl['dia'];
         $flMes         = (int)$fl['mes'];
