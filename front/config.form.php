@@ -36,7 +36,7 @@ if (!$config->getFromDB(1)) {
 // POST: Salvar configuração
 // -----------------------------------------------------------------------
 if (isset($_POST['update_config'])) {
-    Session::checkCSRF();
+    Session::checkCSRF($_POST);
     $isActive = isset($_POST['is_active']) ? 1 : 0;
     $apiProvider    = $_POST['api_provider'] ?? 'brasilapi';
     $apiToken       = trim($_POST['api_token'] ?? '');
@@ -113,7 +113,7 @@ if (isset($_POST['update_config'])) {
 // POST: Sincronização manual
 // -----------------------------------------------------------------------
 if (isset($_POST['sync_now'])) {
-    Session::checkCSRF();
+    Session::checkCSRF($_POST);
     $year = (int)($_POST['sync_year'] ?? date('Y'));
     $loadedYear = (int)($_POST['loaded_year'] ?? 0);
     $manualCalendarId = (int)($_POST['manual_calendars_id'] ?? 0);
