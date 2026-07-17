@@ -17,7 +17,7 @@ Session::checkRight("config", UPDATE);
 // -----------------------------------------------------------------------
 // Carrega (ou cria) o registro de configuração
 // -----------------------------------------------------------------------
-$config = new PluginBrasilferiadosSync();
+$config = new \GlpiPlugin\Brasilferiados\Sync();
 if (!$config->getFromDB(1)) {
     global $DB;
     $DB->insert('glpi_plugin_brasilferiados_configs', [
@@ -36,49 +36,34 @@ if (!$config->getFromDB(1)) {
 // POST: Salvar configuração
 // -----------------------------------------------------------------------
 if (isset($_POST['update_config'])) {
+    Session::checkCSRF();
     $isActive = isset($_POST['is_active']) ? 1 : 0;
-    $apiProvider    = $_POST['api_provider'] ?? 'brasilapi';
-    $apiToken       = trim($_POST['api_token'] ?? '');
-    $apiUf          = trim($_POST['api_uf'] ?? '');
-    $apiCidadeIbge  = trim($_POST['api_cidade_ibge'] ?? '');
-
-    $govFederalText = trim($_POST['gov_federal_text'] ?? '');
+    $apiProvider = $_POST['api_provider'] ?? 'brasilapi';
 
     // Validar provedor
-    $validProviders = array_keys(PluginBrasilferiadosSync::getProviderList());
+    $validProviders = array_keys(\GlpiPlugin\Brasilferiados\Sync::getProviderList());
     if (!in_array($apiProvider, $validProviders)) {
         $apiProvider = 'brasilapi';
     }
 
-    // Se provedor não é FeriadosAPI, limpa campos específicos
-    if ($apiProvider !== 'feriadosapi') {
-        $apiToken      = '';
-        $apiUf         = '';
-        $apiCidadeIbge = '';
-    } else {
-        if (empty($apiToken) || empty($apiUf) || empty($apiCidadeIbge)) {
-            Session::addMessageAfterRedirect(
-                'Feriados API selecionada: Os campos Token, Estado e Cidade são obrigatórios.',
-                false,
-                ERROR
-            );
-            Html::back();
-        }
+    $provider = \GlpiPlugin\Brasilferiados\Sync::getProvider($apiProvider);
+    $validationError = $provider->validateConfig($_POST);
+
+    if ($validationError !== '') {
+        Session::addMessageAfterRedirect($validationError, false, ERROR);
+        Html::back();
     }
-    
-    // Se não for Importador, limpa o texto
-    if ($apiProvider !== 'importador_gov_federal') {
-        $govFederalText = '';
-    } else {
-        if (empty($govFederalText)) {
-            Session::addMessageAfterRedirect(
-                'Importador Governo Federal: O texto da portaria é obrigatório.',
-                false,
-                ERROR
-            );
-            Html::back();
-        }
-    }
+
+    $apiToken       = trim($_POST['api_token'] ?? '');
+    $apiUf          = trim($_POST['api_uf'] ?? '');
+    $apiCidadeIbge  = trim($_POST['api_cidade_ibge'] ?? '');
+    $govFederalText = trim($_POST['gov_federal_text'] ?? '');
+
+    $configFields = array_column($provider->getConfigFields(), 'name');
+    if (!in_array('api_token', $configFields)) $apiToken = '';
+    if (!in_array('api_uf', $configFields)) $apiUf = '';
+    if (!in_array('api_cidade_ibge', $configFields)) $apiCidadeIbge = '';
+    if (!in_array('gov_federal_text', $configFields)) $govFederalText = '';
 
     $config->update([
         'id'              => 1,
@@ -101,7 +86,7 @@ if (isset($_POST['update_config'])) {
     }
 
     Session::addMessageAfterRedirect(
-        'Configuração salva com sucesso.',
+        __('Configuração salva com sucesso.', 'brasilferiados'),
         true,
         INFO
     );
@@ -118,17 +103,18 @@ if (isset($_POST['update_config'])) {
 // POST: Sincronização manual
 // -----------------------------------------------------------------------
 if (isset($_POST['sync_now'])) {
+    Session::checkCSRF();
     $year = (int)($_POST['sync_year'] ?? date('Y'));
     $loadedYear = (int)($_POST['loaded_year'] ?? 0);
     $manualCalendarId = (int)($_POST['manual_calendars_id'] ?? 0);
     $nationalHolidays = $_POST['national_holidays'] ?? [];
 
     if ($year < 2001 || $year > 2099) {
-        Session::addMessageAfterRedirect('Por favor, informe um ano válido entre 2001 e 2099.', false, ERROR);
+        Session::addMessageAfterRedirect(__('Por favor, informe um ano válido entre 2001 e 2099.', 'brasilferiados'), false, ERROR);
         Html::back();
     }
 
-    $configCheck = new PluginBrasilferiadosSync();
+    $configCheck = new \GlpiPlugin\Brasilferiados\Sync();
     $configCheck->getFromDB(1);
     $isAct = (int)($configCheck->fields['is_active'] ?? 0);
 
@@ -136,7 +122,7 @@ if (isset($_POST['sync_now'])) {
         // Automação desligada: O usuário precisa carregar o ano idêntico antes de sincronizar
         if ($year !== $loadedYear) {
             Session::addMessageAfterRedirect(
-                "Você precisa 'Carregar Feriados' do ano {$year} no grid acima antes de sincronizar.",
+                sprintf(__("Você precisa 'Carregar Feriados' do ano %d no grid acima antes de sincronizar.", 'brasilferiados'), $year),
                 false,
                 ERROR
             );
@@ -158,14 +144,14 @@ if (isset($_POST['sync_now'])) {
                 }
             }
         }
-        $resultado = PluginBrasilferiadosSync::sincronizarFeriados($year, $nacionais, false, $manualCalendarId);
+        $resultado = \GlpiPlugin\Brasilferiados\Sync::sincronizarFeriados($year, $nacionais, false, $manualCalendarId);
     } else {
         // Automação ativada: Ignora exclusões manuais e bate na API nativamente
-        $resultado = PluginBrasilferiadosSync::sincronizarFeriados($year, null, false, $manualCalendarId);
+        $resultado = \GlpiPlugin\Brasilferiados\Sync::sincronizarFeriados($year, null, false, $manualCalendarId);
     }
 
     $msg = sprintf(
-        'Ano %d — Inseridos: %d | Ignorados (duplicados): %d',
+        __('Ano %d — Inseridos: %d | Ignorados (duplicados): %d', 'brasilferiados'),
         $year,
         $resultado['inseridos'],
         $resultado['ignorados']
@@ -200,7 +186,7 @@ if (isset($_REQUEST['load_national'])) {
     if ($apiProvider === 'importador_gov_federal' && preg_match('/no ano de\s*(\d{4})/i', $govFederalText, $matches)) {
         $loadedYear = (int)$matches[1];
     }
-    $apiResult = PluginBrasilferiadosSync::fetchFromProvider($loadedYear);
+    $apiResult = \GlpiPlugin\Brasilferiados\Sync::fetchFromProvider($loadedYear);
     $apiHolidays = $apiResult['feriados'];
     if (!empty($apiResult['erros'])) {
         foreach ($apiResult['erros'] as $err) {
@@ -212,43 +198,12 @@ if (isset($_REQUEST['load_national'])) {
 } else if ($isActive) {
     // Se automação está ativa, carrega sempre o ano atual automaticamente para consulta
     $loadedYear = $anoAtual;
-    $apiResult = PluginBrasilferiadosSync::fetchFromProvider($loadedYear);
+    $apiResult = \GlpiPlugin\Brasilferiados\Sync::fetchFromProvider($loadedYear);
     $apiHolidays = $apiResult['feriados'];
     $isLoaded = true;
 }
 
-// -----------------------------------------------------------------------
-// DADOS ESTÁTICOS — Lista de estados brasileiros para o dropdown
-// -----------------------------------------------------------------------
-$estadosBrasil = [
-    'AC' => 'Acre',
-    'AL' => 'Alagoas',
-    'AP' => 'Amapá',
-    'AM' => 'Amazonas',
-    'BA' => 'Bahia',
-    'CE' => 'Ceará',
-    'DF' => 'Distrito Federal',
-    'ES' => 'Espírito Santo',
-    'GO' => 'Goiás',
-    'MA' => 'Maranhão',
-    'MT' => 'Mato Grosso',
-    'MS' => 'Mato Grosso do Sul',
-    'MG' => 'Minas Gerais',
-    'PA' => 'Pará',
-    'PB' => 'Paraíba',
-    'PR' => 'Paraná',
-    'PE' => 'Pernambuco',
-    'PI' => 'Piauí',
-    'RJ' => 'Rio de Janeiro',
-    'RN' => 'Rio Grande do Norte',
-    'RS' => 'Rio Grande do Sul',
-    'RO' => 'Rondônia',
-    'RR' => 'Roraima',
-    'SC' => 'Santa Catarina',
-    'SP' => 'São Paulo',
-    'SE' => 'Sergipe',
-    'TO' => 'Tocantins',
-];
+// Estados Brasil movido para FeriadosApi.php
 
 // -----------------------------------------------------------------------
 // RENDERIZAÇÃO DA PÁGINA
@@ -259,7 +214,7 @@ global $CFG_GLPI;
 $form_url = $CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php';
 
 // Obter nome do provedor ativo para exibição
-$providerList = PluginBrasilferiadosSync::getProviderList();
+$providerList = \GlpiPlugin\Brasilferiados\Sync::getProviderList();
 $providerLabel = $providerList[$apiProvider] ?? 'Brasil API';
 
 // =====================================================================
@@ -284,7 +239,7 @@ echo "<tr><th colspan='2'>Provedor</th></tr>";
 
 // Dropdown do Provedor
 echo "<tr class='tab_bg_1'>";
-echo "<td style='width: 40%;'>API de Feriados / Importador</td>";
+echo "<td style='width: 40%; vertical-align: top; padding-top: 15px;'>API de Feriados / Importador</td>";
 echo "<td>";
 echo "<select name='api_provider' id='api_provider_select' class='form-select' style='width: auto; display: inline-block;'>";
 foreach ($providerList as $key => $label) {
@@ -296,71 +251,72 @@ echo "<br><small class='text-muted'>Selecione API / Importador utilizado para bu
 echo "</td>";
 echo "</tr>";
 
-// ── Campos Dinâmicos da FeriadosAPI ──
-$displayFeriadosApi = ($apiProvider === 'feriadosapi') ? '' : "style='display: none;'";
-
-// Token
-echo "<tr class='tab_bg_1 feriadosapi-field' {$displayFeriadosApi}>";
-echo "<td>Token da API <span style='color:red;'>*</span></td>";
-echo "<td>";
-$tokenEsc = htmlspecialchars($apiToken, ENT_QUOTES);
-echo "<input type='text' name='api_token' id='api_token_input' value='{$tokenEsc}' class='form-control' style='width: 100%;' placeholder='Cole seu Bearer Token aqui'>";
-echo "<br><small class='text-muted'>Obtenha seu token gratuitamente em <a href='https://feriadosapi.com/signup' target='_blank'>feriadosapi.com</a>. O plano gratuito cobre as 27 capitais estaduais.</small>";
-echo "</td>";
-echo "</tr>";
-
-// Estado (UF)
-echo "<tr class='tab_bg_1 feriadosapi-field' {$displayFeriadosApi}>";
-echo "<td>Estado (UF) <span style='color:red;'>*</span></td>";
-echo "<td>";
-echo "<select name='api_uf' id='api_uf_select' class='form-select' style='width: auto; display: inline-block;'>";
-echo "<option value=''>Selecione o estado...</option>";
-foreach ($estadosBrasil as $sigla => $nomeEstado) {
-    $selected = ($sigla === $apiUf) ? "selected='selected'" : "";
-    echo "<option value='{$sigla}' {$selected}>{$sigla} — {$nomeEstado}</option>";
+// ── Campos Dinâmicos dos Provedores ──
+foreach ($providerList as $key => $label) {
+    $p = \GlpiPlugin\Brasilferiados\Sync::getProvider($key);
+    $fields = $p->getConfigFields();
+    
+    $displayStyle = ($key === $apiProvider) ? '' : "style='display: none;'";
+    
+    foreach ($fields as $field) {
+        echo "<tr class='tab_bg_1 provider-field-{$key}' {$displayStyle}>";
+        
+        if (($field['type'] ?? '') === 'info') {
+            echo "<td colspan='2' style='padding: 10px;'>";
+            echo "<div style='background: #e8f4fd; border-left: 4px solid #2196F3; padding: 12px 15px; border-radius: 4px;'>";
+            echo "<i class='fas fa-info-circle' style='color: #2196F3;'></i> ";
+            echo $field['content'];
+            echo "</div>";
+            echo "</td>";
+        } else {
+            $req = !empty($field['required']) ? " <span style='color:red;'>*</span>" : "";
+            echo "<td style='width: 40%; vertical-align: top; padding-top: 15px;'>" . htmlspecialchars($field['label']) . $req . "</td>";
+            echo "<td>";
+            
+            $fieldName = $field['name'] ?? '';
+            $val = "";
+            if ($fieldName === 'api_token') $val = $apiToken;
+            elseif ($fieldName === 'api_uf') $val = $apiUf;
+            elseif ($fieldName === 'api_cidade_ibge') $val = $apiCidadeIbge;
+            elseif ($fieldName === 'gov_federal_text') $val = $govFederalText;
+            
+            $valEsc = htmlspecialchars($val, ENT_QUOTES);
+            $placeholder = isset($field['placeholder']) ? htmlspecialchars($field['placeholder'], ENT_QUOTES) : '';
+            $cssId = isset($field['css_class']) ? $field['css_class'] : $fieldName . '_input';
+            if ($fieldName === 'api_uf') $cssId = 'api_uf_select';
+            
+            if ($field['type'] === 'text') {
+                echo "<input type='text' name='{$fieldName}' id='{$cssId}' value='{$valEsc}' class='form-control' style='width: 100%;' placeholder='{$placeholder}'>";
+            } elseif ($field['type'] === 'textarea') {
+                $height = $field['height'] ?? '150px';
+                echo "<textarea name='{$fieldName}' id='{$cssId}' class='form-control' style='width: 100%; height: {$height};' placeholder='{$placeholder}'>{$valEsc}</textarea>";
+            } elseif ($field['type'] === 'select') {
+                echo "<select name='{$fieldName}' id='{$cssId}' class='form-select' style='width: auto; display: inline-block; min-width: 200px;'>";
+                if (!empty($field['empty_option'])) {
+                    if ($fieldName === 'api_cidade_ibge' && !empty($val)) {
+                        echo "<option value='{$val}' selected='selected'>Carregando... (IBGE: {$val})</option>";
+                    } else {
+                        echo "<option value=''>" . htmlspecialchars($field['empty_option']) . "</option>";
+                    }
+                }
+                if (!empty($field['options'])) {
+                    foreach ($field['options'] as $optVal => $optLabel) {
+                        $sel = ($optVal === $val) ? "selected='selected'" : "";
+                        echo "<option value='{$optVal}' {$sel}>" . htmlspecialchars($optVal . ' — ' . $optLabel) . "</option>";
+                    }
+                }
+                echo "</select>";
+            }
+            
+            if (!empty($field['help_text'])) {
+                echo "<br><small class='text-muted'>" . $field['help_text'] . "</small>";
+            }
+            
+            echo "</td>";
+        }
+        echo "</tr>";
+    }
 }
-echo "</select>";
-echo "</td>";
-echo "</tr>";
-
-// Cidade
-echo "<tr class='tab_bg_1 feriadosapi-field' {$displayFeriadosApi}>";
-echo "<td>Cidade <span style='color:red;'>*</span></td>";
-echo "<td>";
-echo "<select name='api_cidade_ibge' id='api_cidade_select' class='form-select' style='width: auto; display: inline-block; min-width: 300px;'>";
-if (!empty($apiCidadeIbge)) {
-    // Placeholder enquanto carrega via AJAX
-    echo "<option value='{$apiCidadeIbge}' selected='selected'>Carregando... (IBGE: {$apiCidadeIbge})</option>";
-} else {
-    echo "<option value=''>Selecione o estado primeiro...</option>";
-}
-echo "</select>";
-echo "<br><small class='text-muted'>A lista de cidades é carregada automaticamente ao selecionar o estado.</small>";
-echo "</td>";
-echo "</tr>";
-
-// Info box sobre FeriadosAPI
-echo "<tr class='tab_bg_1 feriadosapi-field' {$displayFeriadosApi}>";
-echo "<td colspan='2' style='padding: 10px;'>";
-echo "<div style='background: #e8f4fd; border-left: 4px solid #2196F3; padding: 12px 15px; border-radius: 4px;'>";
-echo "<i class='fas fa-info-circle' style='color: #2196F3;'></i> ";
-echo "<strong>Feriados API</strong> retorna automaticamente os feriados <strong>nacionais + estaduais + municipais</strong> ";
-echo "para a cidade selecionada. O plano gratuito cobre as 27 capitais sem custo.";
-echo "</div>";
-echo "</td>";
-echo "</tr>";
-
-// ── Campos Dinâmicos do Importador Governo Federal ──
-$displayMgiImporter = ($apiProvider === 'importador_gov_federal') ? '' : "style='display: none;'";
-
-echo "<tr class='tab_bg_1 govfederalimporter-field' {$displayMgiImporter}>";
-echo "<td>Texto da Portaria do Governo Federal <span style='color:red;'>*</span></td>";
-echo "<td>";
-$govFederalTextEsc = htmlspecialchars($govFederalText, ENT_QUOTES);
-echo "<textarea name='gov_federal_text' id='gov_federal_text_input' class='form-control' style='width: 100%; height: 150px;' placeholder='Cole aqui todo o texto da Portaria do Governo Federal divulgada no Diário Oficial...'>{$govFederalTextEsc}</textarea>";
-echo "<br><small class='text-muted'>Copie o texto da publicação do Diário Oficial da União contendo os incisos e cole aqui. O importador identificará as datas automaticamente.</small>";
-echo "</td>";
-echo "</tr>";
 
 echo "<tr class='tab_bg_2'>";
 echo "<td colspan='2' class='center' style='padding: 10px;'>";
@@ -377,7 +333,7 @@ echo "<table class='tab_cadre_fixe' style='width: 700px;'>";
 echo "<tr><th colspan='2'>Sincronização Automática</th></tr>";
 
 echo "<tr class='tab_bg_1'>";
-echo "<td style='width: 40%;'>Sincronização automática de Ano Novo</td>";
+echo "<td style='width: 40%; vertical-align: top; padding-top: 15px;'>Sincronização automática de Ano Novo</td>";
 echo "<td>";
 $checked = $isActive ? "checked='checked'" : "";
 echo "<label>";
@@ -504,7 +460,7 @@ echo "</div>";
 // =====================================================================
 // SEÇÃO 3 — Grid de Feriados Locais Recorrentes
 // =====================================================================
-$feriadosLocais = PluginBrasilferiadosLocal::listarTodos();
+$feriadosLocais = \GlpiPlugin\Brasilferiados\Local::listarTodos();
 
 echo "<div class='center' style='margin-top: 20px;'>";
 echo "<table class='tab_cadre_fixe' style='width: 700px;'>";
@@ -528,7 +484,7 @@ if (empty($feriadosLocais)) {
 } else {
     foreach ($feriadosLocais as $fl) {
         $dataFormatada = sprintf('%02d/%02d', $fl['dia'], $fl['mes']);
-        $nomeEsc       = htmlspecialchars($fl['nome']);
+        $nomeEsc       = htmlspecialchars($fl['nome'], ENT_QUOTES);
         $flId          = (int)$fl['id'];
         $flDia         = (int)$fl['dia'];
         $flMes         = (int)$fl['mes'];
@@ -606,7 +562,7 @@ echo "<div class='center' style='margin-top: 20px;'>";
 // Tabela de Sincronização Manual (Calendário Principal)
 echo "<table class='tab_cadre_fixe' style='width: 700px; margin-bottom: 20px;'>";
 echo "<tr class='tab_bg_1'>";
-echo "<td style='width: 40%;'>Calendário Principal de Atendimento <span style='color:red;'>*</span></td>";
+echo "<td style='width: 40%; vertical-align: top; padding-top: 15px;'>Calendário Principal de Atendimento <span style='color:red;'>*</span></td>";
 echo "<td>";
 Calendar::dropdown(['name' => 'calendars_id', 'value' => $calendarsId]);
 echo "<br><small class='text-muted'>Os feriados serão vinculados a este calendário durante a Sincronização Manual.</small>";
@@ -651,34 +607,20 @@ echo "
 
     function toggleProviderFields() {
         var provider = providerSelect.value;
-        var fields = document.querySelectorAll('.feriadosapi-field');
-        var mgiFields = document.querySelectorAll('.govfederalimporter-field');
+        var allProviderFields = document.querySelectorAll('[class*=\"provider-field-\"]');
         
-        for (var i = 0; i < fields.length; i++) {
-            if (provider === 'feriadosapi') {
-                fields[i].style.display = '';
-                // Animação suave de entrada
-                fields[i].style.opacity = '0';
-                fields[i].style.transition = 'opacity 0.3s ease-in';
-                setTimeout((function(el) {
-                    return function() { el.style.opacity = '1'; };
-                })(fields[i]), 50);
-            } else {
-                fields[i].style.display = 'none';
-            }
+        for (var i = 0; i < allProviderFields.length; i++) {
+            allProviderFields[i].style.display = 'none';
         }
         
-        for (var i = 0; i < mgiFields.length; i++) {
-            if (provider === 'importador_gov_federal') {
-                mgiFields[i].style.display = '';
-                mgiFields[i].style.opacity = '0';
-                mgiFields[i].style.transition = 'opacity 0.3s ease-in';
-                setTimeout((function(el) {
-                    return function() { el.style.opacity = '1'; };
-                })(mgiFields[i]), 50);
-            } else {
-                mgiFields[i].style.display = 'none';
-            }
+        var activeFields = document.querySelectorAll('.provider-field-' + provider);
+        for (var j = 0; j < activeFields.length; j++) {
+            activeFields[j].style.display = '';
+            activeFields[j].style.opacity = '0';
+            activeFields[j].style.transition = 'opacity 0.3s ease-in';
+            setTimeout((function(el) {
+                return function() { el.style.opacity = '1'; };
+            })(activeFields[j]), 50);
         }
     }
 
@@ -762,21 +704,26 @@ echo "
 
     formConfig.addEventListener('submit', function(e) {
         var providerSelect = document.getElementById('api_provider_select');
-        if (providerSelect && providerSelect.value === 'feriadosapi') {
-            var token = document.getElementById('api_token_input') ? document.getElementById('api_token_input').value.trim() : '';
-            var uf = document.getElementById('api_uf_select') ? document.getElementById('api_uf_select').value.trim() : '';
-            var cidade = document.getElementById('api_cidade_select') ? document.getElementById('api_cidade_select').value.trim() : '';
-            
-            if (!token || !uf || !cidade) {
-                e.preventDefault();
-                alert('Feriados API selecionada: Os campos Token da API, Estado (UF) e Cidade são obrigatórios para salvar a configuração.');
+        if (!providerSelect) return;
+        
+        var provider = providerSelect.value;
+        var isValid = true;
+        
+        var rows = document.querySelectorAll('.provider-field-' + provider);
+        for (var i = 0; i < rows.length; i++) {
+            var labelCell = rows[i].querySelector('td:first-child');
+            if (labelCell && labelCell.innerHTML.indexOf('*') !== -1) {
+                var input = rows[i].querySelector('input, select, textarea');
+                if (input && input.value.trim() === '') {
+                    isValid = false;
+                    break;
+                }
             }
-        } else if (providerSelect && providerSelect.value === 'importador_gov_federal') {
-            var textoGov = document.getElementById('gov_federal_text_input') ? document.getElementById('gov_federal_text_input').value.trim() : '';
-            if (!textoGov) {
-                e.preventDefault();
-                alert('Importador Governo Federal: O texto da portaria é obrigatório para salvar a configuração.');
-            }
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Por favor, preencha todos os campos obrigatórios (*) do provedor selecionado.');
         }
     });
 })();
