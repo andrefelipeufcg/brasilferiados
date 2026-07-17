@@ -176,6 +176,51 @@ class FeriadosApi implements ApiProvider {
         if (empty($token) || empty($uf) || empty($cidade)) {
             return __('Feriados API selecionada: Os campos Token, Estado e Cidade são obrigatórios.', 'brasilferiados');
         }
+        
+        // Testa a conexão na API para ver se o token e plano são válidos
+        $year = (int)date('Y');
+        $ibge = preg_replace('/[^0-9]/', '', $cidade);
+        $url = "https://feriadosapi.com/api/v1/feriados/cidade/{$ibge}?ano={$year}";
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10, // Timeout mais curto para validação
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_USERAGENT      => 'GLPI-BrasilFeriados/1.1',
+            CURLOPT_HTTPHEADER     => [
+                "Authorization: Bearer {$token}",
+                'Accept: application/json',
+            ],
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 401 || $httpCode === 403) {
+            $errorMsg = __('Token inválido ou sem permissão', 'brasilferiados');
+            if ($response !== false) {
+                $jsonErr = json_decode($response, true);
+                if (isset($jsonErr['message'])) {
+                    $errorMsg = $jsonErr['message'];
+                } elseif (isset($jsonErr['error'])) {
+                    $errorMsg = $jsonErr['error'];
+                }
+            }
+            return sprintf(
+                __('FeriadosAPI: %s (HTTP %s). Verifique seu token e plano no painel.', 'brasilferiados'),
+                $errorMsg,
+                $httpCode
+            );
+        }
+
+        if ($httpCode !== 200 || $response === false) {
+            return sprintf(
+                __('Falha ao validar token na FeriadosAPI (HTTP %s).', 'brasilferiados'),
+                $httpCode
+            );
+        }
+
         return '';
     }
 }

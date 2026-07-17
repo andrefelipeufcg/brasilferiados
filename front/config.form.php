@@ -9,8 +9,10 @@
 
 include("../../../inc/includes.php");
 
-// Permissão: somente quem pode gerenciar configurações
 Session::checkRight("config", UPDATE);
+
+global $CFG_GLPI;
+$form_url = $CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php';
 
 
 
@@ -36,7 +38,10 @@ if (!$config->getFromDB(1)) {
 // POST: Salvar configuração
 // -----------------------------------------------------------------------
 if (isset($_POST['update_config'])) {
-    Session::checkCSRF($_POST);
+    // GLPI 11+ valida e consome o CSRF automaticamente no middleware
+    if (!class_exists('Glpi\Kernel\Listener\ControllerListener\CheckCsrfListener')) {
+        Session::checkCSRF($_POST);
+    }
     $isActive = isset($_POST['is_active']) ? 1 : 0;
     $apiProvider    = $_POST['api_provider'] ?? 'brasilapi';
     $apiToken       = trim($_POST['api_token'] ?? '');
@@ -56,7 +61,7 @@ if (isset($_POST['update_config'])) {
 
     if ($validationError !== '') {
         Session::addMessageAfterRedirect($validationError, false, ERROR);
-        Html::back();
+        Html::redirect($form_url);
     }
 
     $updateData = [
@@ -105,7 +110,7 @@ if (isset($_POST['update_config'])) {
     if ($apiProvider === 'importador_gov_federal') {
         Html::redirect($CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php?load_national=1');
     } else {
-        Html::back();
+        Html::redirect($form_url);
     }
 }
 
@@ -113,7 +118,10 @@ if (isset($_POST['update_config'])) {
 // POST: Sincronização manual
 // -----------------------------------------------------------------------
 if (isset($_POST['sync_now'])) {
-    Session::checkCSRF($_POST);
+    // GLPI 11+ valida e consome o CSRF automaticamente no middleware
+    if (!class_exists('Glpi\Kernel\Listener\ControllerListener\CheckCsrfListener')) {
+        Session::checkCSRF($_POST);
+    }
     $year = (int)($_POST['sync_year'] ?? date('Y'));
     $loadedYear = (int)($_POST['loaded_year'] ?? 0);
     $manualCalendarId = (int)($_POST['manual_calendars_id'] ?? 0);
@@ -121,7 +129,7 @@ if (isset($_POST['sync_now'])) {
 
     if ($year < 2001 || $year > 2099) {
         Session::addMessageAfterRedirect(__('Por favor, informe um ano válido entre 2001 e 2099.', 'brasilferiados'), false, ERROR);
-        Html::back();
+        Html::redirect($form_url);
     }
 
     $configCheck = new \GlpiPlugin\Brasilferiados\Sync();
@@ -136,7 +144,7 @@ if (isset($_POST['sync_now'])) {
                 false,
                 ERROR
             );
-            Html::back();
+            Html::redirect($form_url);
         }
 
         $nacionais = [];
@@ -172,12 +180,13 @@ if (isset($_POST['sync_now'])) {
         Session::addMessageAfterRedirect($err, false, ERROR);
     }
 
-    Html::back();
+    Html::redirect($form_url);
 }
 
 // -----------------------------------------------------------------------
 // Lógica para renderização de Feriados (GET / POST load_national)
 // -----------------------------------------------------------------------
+$csrfToken = Session::getNewCSRFToken();
 $isActive       = (int)($config->fields['is_active'] ?? 0);
 $calendarsId    = (int)($config->fields['calendars_id'] ?? 0);
 $apiProvider    = $config->fields['api_provider'] ?? 'brasilapi';
@@ -202,7 +211,7 @@ if (isset($_REQUEST['load_national'])) {
         foreach ($apiResult['erros'] as $err) {
             Session::addMessageAfterRedirect($err, false, ERROR);
         }
-        Html::back();
+        Html::redirect($form_url);
     }
     $isLoaded = true;
 } else if ($isActive) {
@@ -220,9 +229,6 @@ if (isset($_REQUEST['load_national'])) {
 // -----------------------------------------------------------------------
 Html::header('Brasil Feriados', $_SERVER['PHP_SELF'], 'config', 'plugins');
 
-global $CFG_GLPI;
-$form_url = $CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php';
-
 // Obter nome do provedor ativo para exibição
 $providerList = \GlpiPlugin\Brasilferiados\Sync::getProviderList();
 $providerLabel = $providerList[$apiProvider] ?? 'Brasil API';
@@ -231,7 +237,7 @@ $providerLabel = $providerList[$apiProvider] ?? 'Brasil API';
 // SEÇÃO 1 — Configuração da Automação (e Provedor de API)
 // =====================================================================
 echo "<form method='post' action='" . $form_url . "' id='form_config'>";
-echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+echo Html::hidden('_glpi_csrf_token', ['value' => $csrfToken]);
 echo "<input type='hidden' name='update_config' value='1'>";
 
 echo "<div class='center' style='margin-top: 20px;'>";
@@ -380,14 +386,15 @@ echo "<div class='center' style='margin-top: 20px;'>";
 
 // Formulário apenas para carregar os feriados
 echo "<form method='post' action='" . $form_url . "' style='margin-bottom: 0;'>";
-echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+echo Html::hidden('_glpi_csrf_token', ['value' => $csrfToken]);
+echo "<input type='hidden' name='load_national' value='1'>";
 
 echo "<table class='tab_cadre_fixe' style='width: 700px;'>";
 echo "<tr class='tab_bg_2'>";
 echo "<th colspan='4' style='text-align: left; padding: 10px;'>Feriados do ano ";
 
     echo "<input type='number' name='load_year' id='sync_year_input' value='$loadedYear' min='2001' max='2099' style='width: 90px; margin-left: 10px;' class='form-control d-inline-block'>";
-    echo "<button type='submit' name='load_national' value='1' class='btn btn-warning' style='margin-left: 10px; color: white;'>Carregar Feriados</button>";
+    echo "<button type='submit' class='btn btn-warning' style='margin-left: 10px; color: white;'>Carregar Feriados</button>";
     echo "<span style='margin-left: 15px; font-weight: normal; font-size: 0.85em; color: #666;'>";
     echo "<i class='fas fa-plug'></i> Provedor: <strong>" . htmlspecialchars($providerLabel) . "</strong>";
     echo "</span>";
@@ -532,7 +539,7 @@ echo "</div>";
 // SEÇÃO 4 — Sincronização Manual (Formulário Oculto com Payload)
 // =====================================================================
 echo "<form method='post' action='" . $form_url . "' id='form_sync_manual'>";
-echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+echo Html::hidden('_glpi_csrf_token', ['value' => $csrfToken]);
 
 // Injetamos os feriados ocultos aqui para serem enviados no POST de sincronização manual
 echo "<div id='national_holidays_container' style='display: none;'>";
@@ -593,7 +600,7 @@ Html::closeForm();
 
 // Form oculto para exclusão de feriados locais (fora de qualquer outro form)
 echo "<form method='post' action='" . $CFG_GLPI['root_doc'] . "/plugins/brasilferiados/front/local.form.php' id='form_delete_local' style='display:none;'>";
-echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+echo Html::hidden('_glpi_csrf_token', ['value' => $csrfToken]);
 echo "<input type='hidden' name='id' id='delete_local_id' value='0'>";
 echo "<input type='hidden' name='delete_local' value='1'>";
 echo "</form>";
@@ -878,7 +885,7 @@ function salvarEdicaoNacional() {
   <div class='modal-dialog'>
     <div class='modal-content'>
       <form method='post' action='" . $CFG_GLPI['root_doc'] . "/plugins/brasilferiados/front/local.form.php'>
-        " . Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]) . "
+        <input type='hidden' name='_glpi_csrf_token' value='" . $csrfToken . "'>
         <input type='hidden' name='id' id='modal_fl_id' value='0'>
         <input type='hidden' name='save_local' value='1'>
         
