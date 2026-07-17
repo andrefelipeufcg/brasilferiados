@@ -59,26 +59,31 @@ if (isset($_POST['update_config'])) {
         Html::back();
     }
 
-    $apiToken       = trim($_POST['api_token'] ?? '');
-    $apiUf          = trim($_POST['api_uf'] ?? '');
-    $apiCidadeIbge  = trim($_POST['api_cidade_ibge'] ?? '');
-    $govFederalText = trim($_POST['gov_federal_text'] ?? '');
+    $updateData = [
+        'id'           => 1,
+        'is_active'    => $isActive,
+        'api_provider' => $apiProvider,
+    ];
 
-    $configFields = array_column($provider->getConfigFields(), 'name');
-    if (!in_array('api_token', $configFields)) $apiToken = '';
-    if (!in_array('api_uf', $configFields)) $apiUf = '';
-    if (!in_array('api_cidade_ibge', $configFields)) $apiCidadeIbge = '';
-    if (!in_array('gov_federal_text', $configFields)) $govFederalText = '';
+    // 1. Descobre todos os campos possíveis de TODOS os provedores e os inicializa vazios
+    $allProviders = \GlpiPlugin\Brasilferiados\Sync::getProviderList();
+    foreach (array_keys($allProviders) as $provKey) {
+        $provInstance = \GlpiPlugin\Brasilferiados\Sync::getProvider($provKey);
+        $provFields = array_column($provInstance->getConfigFields(), 'name');
+        foreach ($provFields as $fName) {
+            if (!isset($updateData[$fName])) {
+                $updateData[$fName] = '';
+            }
+        }
+    }
 
-    $config->update([
-        'id'              => 1,
-        'is_active'       => $isActive,
-        'api_provider'    => $apiProvider,
-        'api_token'       => $apiToken,
-        'api_uf'          => $apiUf,
-        'api_cidade_ibge' => $apiCidadeIbge,
-        'gov_federal_text'=> $govFederalText,
-    ]);
+    // 2. Preenche APENAS os campos do provedor atual com o que veio do form
+    $currentProviderFields = array_column($provider->getConfigFields(), 'name');
+    foreach ($currentProviderFields as $fieldName) {
+        $updateData[$fieldName] = trim($_POST[$fieldName] ?? '');
+    }
+
+    $config->update($updateData);
 
     // Habilita ou desabilita fisicamente o CronTask no motor do GLPI
     $crontask = new CronTask();
