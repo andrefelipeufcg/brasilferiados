@@ -38,7 +38,12 @@ if (!$config->getFromDB(1)) {
 if (isset($_POST['update_config'])) {
     Session::checkCSRF();
     $isActive = isset($_POST['is_active']) ? 1 : 0;
-    $apiProvider = $_POST['api_provider'] ?? 'brasilapi';
+    $apiProvider    = $_POST['api_provider'] ?? 'brasilapi';
+    $apiToken       = trim($_POST['api_token'] ?? '');
+    $apiUf          = trim($_POST['api_uf'] ?? '');
+    $apiCidadeIbge  = trim($_POST['api_cidade_ibge'] ?? '');
+
+    $govFederalText = trim($_POST['gov_federal_text'] ?? '');
 
     // Validar provedor
     $validProviders = array_keys(\GlpiPlugin\Brasilferiados\Sync::getProviderList());
