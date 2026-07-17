@@ -23,4 +23,21 @@ interface ApiProvider {
 
     /** Se o provedor requer seleção de localidade (UF/cidade). */
     public function requiresLocation(): bool;
+
+    /**
+     * Declara quais campos de configuração são necessários para este provedor.
+     * Retorna um array de definições de campos.
+     * 
+     * @return array
+     */
+    public function getConfigFields(): array;
+
+    /**
+     * Valida os dados de configuração submetidos pelo formulário.
+     * Retorna uma string vazia em caso de sucesso, ou a mensagem de erro.
+     *
+     * @param array $input Dados do $_POST
+     * @return string
+     */
+    public function validateConfig(array $input): string;
 }

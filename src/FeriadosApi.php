@@ -122,4 +122,105 @@ class FeriadosApi implements ApiProvider {
     public function requiresLocation(): bool {
         return true;
     }
+
+    public function getConfigFields(): array {
+        $estadosBrasil = [
+            'AC' => 'Acre', 'AL' => 'Alagoas', 'AP' => 'Amapá', 'AM' => 'Amazonas',
+            'BA' => 'Bahia', 'CE' => 'Ceará', 'DF' => 'Distrito Federal', 'ES' => 'Espírito Santo',
+            'GO' => 'Goiás', 'MA' => 'Maranhão', 'MT' => 'Mato Grosso', 'MS' => 'Mato Grosso do Sul',
+            'MG' => 'Minas Gerais', 'PA' => 'Pará', 'PB' => 'Paraíba', 'PR' => 'Paraná',
+            'PE' => 'Pernambuco', 'PI' => 'Piauí', 'RJ' => 'Rio de Janeiro', 'RN' => 'Rio Grande do Norte',
+            'RS' => 'Rio Grande do Sul', 'RO' => 'Rondônia', 'RR' => 'Roraima', 'SC' => 'Santa Catarina',
+            'SP' => 'São Paulo', 'SE' => 'Sergipe', 'TO' => 'Tocantins',
+        ];
+
+        return [
+            [
+                'name' => 'api_token',
+                'type' => 'text',
+                'label' => 'Token da API',
+                'required' => true,
+                'placeholder' => 'Cole seu Bearer Token aqui',
+                'help_text' => 'Obtenha seu token gratuitamente em <a href="https://feriadosapi.com/signup" target="_blank">feriadosapi.com</a>. O plano gratuito cobre as 27 capitais estaduais.'
+            ],
+            [
+                'name' => 'api_uf',
+                'type' => 'select',
+                'label' => 'Estado (UF)',
+                'required' => true,
+                'options' => $estadosBrasil,
+                'empty_option' => 'Selecione o estado...'
+            ],
+            [
+                'name' => 'api_cidade_ibge',
+                'type' => 'select',
+                'label' => 'Cidade',
+                'required' => true,
+                'options' => [],
+                'empty_option' => 'Selecione o estado primeiro...',
+                'help_text' => 'A lista de cidades é carregada automaticamente ao selecionar o estado.',
+                'css_class' => 'api_cidade_select'
+            ],
+            [
+                'type' => 'info',
+                'content' => '<strong>Feriados API</strong> retorna automaticamente os feriados <strong>nacionais + estaduais + municipais</strong> para a cidade selecionada. O plano gratuito cobre as 27 capitais sem custo.'
+            ]
+        ];
+    }
+
+    public function validateConfig(array $input): string {
+        $token = trim($input['api_token'] ?? '');
+        $uf = trim($input['api_uf'] ?? '');
+        $cidade = trim($input['api_cidade_ibge'] ?? '');
+
+        if (empty($token) || empty($uf) || empty($cidade)) {
+            return __('Feriados API selecionada: Os campos Token, Estado e Cidade são obrigatórios.', 'brasilferiados');
+        }
+        
+        // Testa a conexão na API para ver se o token e plano são válidos
+        $year = (int)date('Y');
+        $ibge = preg_replace('/[^0-9]/', '', $cidade);
+        $url = "https://feriadosapi.com/api/v1/feriados/cidade/{$ibge}?ano={$year}";
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10, // Timeout mais curto para validação
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_USERAGENT      => 'GLPI-BrasilFeriados/1.1',
+            CURLOPT_HTTPHEADER     => [
+                "Authorization: Bearer {$token}",
+                'Accept: application/json',
+            ],
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 401 || $httpCode === 403) {
+            $errorMsg = __('Token inválido ou sem permissão', 'brasilferiados');
+            if ($response !== false) {
+                $jsonErr = json_decode($response, true);
+                if (isset($jsonErr['message'])) {
+                    $errorMsg = $jsonErr['message'];
+                } elseif (isset($jsonErr['error'])) {
+                    $errorMsg = $jsonErr['error'];
+                }
+            }
+            return sprintf(
+                __('FeriadosAPI: %s (HTTP %s). Verifique seu token e plano no painel.', 'brasilferiados'),
+                $errorMsg,
+                $httpCode
+            );
+        }
+
+        if ($httpCode !== 200 || $response === false) {
+            return sprintf(
+                __('Falha ao validar token na FeriadosAPI (HTTP %s).', 'brasilferiados'),
+                $httpCode
+            );
+        }
+
+        return '';
+    }
 }

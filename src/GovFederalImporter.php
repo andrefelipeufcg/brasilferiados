@@ -68,4 +68,26 @@ class GovFederalImporter implements ApiProvider {
     public function requiresLocation(): bool {
         return false;
     }
+
+    public function getConfigFields(): array {
+        return [
+            [
+                'name' => 'gov_federal_text',
+                'type' => 'textarea',
+                'label' => 'Texto da Portaria do Governo Federal',
+                'required' => true,
+                'placeholder' => 'Cole aqui todo o texto da Portaria do Governo Federal divulgada no Diário Oficial...',
+                'help_text' => 'Copie o texto da publicação do Diário Oficial da União contendo os incisos e cole aqui. O importador identificará as datas automaticamente.',
+                'height' => '150px'
+            ]
+        ];
+    }
+
+    public function validateConfig(array $input): string {
+        $texto = trim($input['gov_federal_text'] ?? '');
+        if (empty($texto)) {
+            return __('Importador Governo Federal: O texto da portaria é obrigatório.', 'brasilferiados');
+        }
+        return '';
+    }
 }

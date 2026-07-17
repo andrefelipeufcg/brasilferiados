@@ -62,4 +62,12 @@ class BrasilApi implements ApiProvider {
     public function requiresLocation(): bool {
         return false;
     }
+
+    public function getConfigFields(): array {
+        return [];
+    }
+
+    public function validateConfig(array $input): string {
+        return '';
+    }
 }
