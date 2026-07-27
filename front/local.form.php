@@ -6,7 +6,10 @@
  * -----------------------------------------------------------------------
  */
 
-include("../../../inc/includes.php");
+$inc = __DIR__ . '/../../../inc/includes.php';
+if (!file_exists($inc)) { $inc = ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/inc/includes.php'; }
+if (!file_exists($inc)) { $inc = ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/../inc/includes.php'; }
+include $inc;
 
 use GlpiPlugin\Brasilferiados\Local;
 

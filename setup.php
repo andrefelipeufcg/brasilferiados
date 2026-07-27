@@ -38,6 +38,13 @@ function plugin_init_brasilferiados() {
             'parameter'   => null,
         ],
     ];
+
+    // Oculta o api_token no GLPI para evitar vazamento em logs, exportações de diagnóstico e na API REST
+    if (class_exists('Hooks') && defined('Hooks::UNDISCLOSED_CONFIG_VALUE')) {
+        $PLUGIN_HOOKS[Hooks::UNDISCLOSED_CONFIG_VALUE]['brasilferiados'] = function () {
+            return ['api_token'];
+        };
+    }
 }
 
 // -----------------------------------------------------------------------
@@ -63,11 +70,11 @@ function plugin_version_brasilferiados() {
 // -----------------------------------------------------------------------
 function plugin_brasilferiados_check_prerequisites() {
     if (version_compare(GLPI_VERSION, PLUGIN_BRASILFERIADOS_MIN_GLPI, '<')) {
-        echo 'Este plugin requer GLPI 11.0.0 ou superior.';
+        echo __('Este plugin requer GLPI 11.0.0 ou superior.', 'brasilferiados');
         return false;
     }
     if (!function_exists('curl_init')) {
-        echo 'A extensão PHP cURL é obrigatória.';
+        echo __('A extensão PHP cURL é obrigatória.', 'brasilferiados');
         return false;
     }
     return true;
