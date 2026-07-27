@@ -11,6 +11,9 @@ class FeriadosApi implements ApiProvider {
         $resultado = ['feriados' => [], 'erros' => []];
 
         $token = trim($config['api_token'] ?? '');
+        if (!empty($token)) {
+            $token = (new \GLPIKey())->decrypt($token);
+        }
         $ibge  = preg_replace('/[^0-9]/', '', trim($config['api_cidade_ibge'] ?? ''));
 
         if (empty($token)) {
@@ -50,6 +53,9 @@ class FeriadosApi implements ApiProvider {
                 } elseif (isset($jsonErr['error'])) {
                     $errorMsg = $jsonErr['error'];
                 }
+            }
+            if (is_string($errorMsg)) {
+                $errorMsg = substr(strip_tags($errorMsg), 0, 200);
             }
             $resultado['erros'][] = sprintf(
                 __('FeriadosAPI: %s (HTTP %s). Verifique seu token e plano no painel.', 'brasilferiados'),
@@ -112,7 +118,7 @@ class FeriadosApi implements ApiProvider {
     }
 
     public function getName(): string {
-        return 'Feriados API';
+        return __('Feriados API', 'brasilferiados');
     }
 
     public function requiresToken(): bool {
@@ -138,32 +144,32 @@ class FeriadosApi implements ApiProvider {
             [
                 'name' => 'api_token',
                 'type' => 'text',
-                'label' => 'Token da API',
+                'label' => __('Token da API', 'brasilferiados'),
                 'required' => true,
-                'placeholder' => 'Cole seu Bearer Token aqui',
-                'help_text' => 'Obtenha seu token gratuitamente em <a href="https://feriadosapi.com/signup" target="_blank">feriadosapi.com</a>. O plano gratuito cobre as 27 capitais estaduais.'
+                'placeholder' => __('Cole seu Bearer Token aqui', 'brasilferiados'),
+                'help_text' => __('Obtenha seu token gratuitamente em <a href="https://feriadosapi.com/signup" target="_blank">feriadosapi.com</a>. O plano gratuito cobre as 27 capitais estaduais.', 'brasilferiados')
             ],
             [
                 'name' => 'api_uf',
                 'type' => 'select',
-                'label' => 'Estado (UF)',
+                'label' => __('Estado (UF)', 'brasilferiados'),
                 'required' => true,
                 'options' => $estadosBrasil,
-                'empty_option' => 'Selecione o estado...'
+                'empty_option' => __('Selecione o estado...', 'brasilferiados')
             ],
             [
                 'name' => 'api_cidade_ibge',
                 'type' => 'select',
-                'label' => 'Cidade',
+                'label' => __('Cidade', 'brasilferiados'),
                 'required' => true,
                 'options' => [],
-                'empty_option' => 'Selecione o estado primeiro...',
-                'help_text' => 'A lista de cidades é carregada automaticamente ao selecionar o estado.',
+                'empty_option' => __('Selecione o estado primeiro...', 'brasilferiados'),
+                'help_text' => __('A lista de cidades é carregada automaticamente ao selecionar o estado.', 'brasilferiados'),
                 'css_class' => 'api_cidade_select'
             ],
             [
                 'type' => 'info',
-                'content' => '<strong>Feriados API</strong> retorna automaticamente os feriados <strong>nacionais + estaduais + municipais</strong> para a cidade selecionada. O plano gratuito cobre as 27 capitais sem custo.'
+                'content' => __('<strong>Feriados API</strong> retorna automaticamente os feriados <strong>nacionais + estaduais + municipais</strong> para a cidade selecionada. O plano gratuito cobre as 27 capitais sem custo.', 'brasilferiados')
             ]
         ];
     }
@@ -206,6 +212,9 @@ class FeriadosApi implements ApiProvider {
                 } elseif (isset($jsonErr['error'])) {
                     $errorMsg = $jsonErr['error'];
                 }
+            }
+            if (is_string($errorMsg)) {
+                $errorMsg = substr(strip_tags($errorMsg), 0, 200);
             }
             return sprintf(
                 __('FeriadosAPI: %s (HTTP %s). Verifique seu token e plano no painel.', 'brasilferiados'),

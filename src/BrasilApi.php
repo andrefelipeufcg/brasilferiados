@@ -52,7 +52,7 @@ class BrasilApi implements ApiProvider {
     }
 
     public function getName(): string {
-        return 'Brasil API';
+        return __('Brasil API', 'brasilferiados');
     }
 
     public function requiresToken(): bool {
