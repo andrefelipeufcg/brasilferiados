@@ -29,22 +29,22 @@
     <versions>
         <version>
             <num>1.1.2</num>
-            <compatibility>>=11.0.0</compatibility>
+            <compatibility>&gt;=10.0.0</compatibility>
             <download_url>https://github.com/andrefelipeufcg/brasilferiados/archive/refs/tags/v1.1.2.zip</download_url>
         </version>
         <version>
             <num>1.1.1</num>
-            <compatibility>>=11.0.0</compatibility>
+            <compatibility>&gt;=10.0.0</compatibility>
             <download_url>https://github.com/andrefelipeufcg/brasilferiados/archive/refs/tags/v1.1.1.zip</download_url>
         </version>
         <version>
             <num>1.1.0</num>
-            <compatibility>>=11.0.0</compatibility>
+            <compatibility>&gt;=10.0.0</compatibility>
             <download_url>https://github.com/andrefelipeufcg/brasilferiados/archive/refs/tags/v1.1.0.zip</download_url>
         </version>
         <version>
             <num>1.0.0</num>
-            <compatibility>>=10.0.0</compatibility>
+            <compatibility>&gt;=10.0.0</compatibility>
             <download_url>https://github.com/andrefelipeufcg/brasilferiados/archive/refs/tags/v1.0.0.zip</download_url>
         </version>
     </versions>
@@ -71,4 +71,8 @@
             <tag>brasil-api</tag>
         </pt_BR>
     </tags>
+    
+    <screenshots>
+        <screenshot>https://raw.githubusercontent.com/andrefelipeufcg/brasilferiados/main/logo.png</screenshot>
+    </screenshots>
 </root>
