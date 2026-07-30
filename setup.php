@@ -12,7 +12,7 @@
  * -----------------------------------------------------------------------
  */
 
-define('PLUGIN_BRASILFERIADOS_VERSION', '1.1.3');
+define('PLUGIN_BRASILFERIADOS_VERSION', '1.1.4');
 define('PLUGIN_BRASILFERIADOS_MIN_GLPI', '10.0.0');
 
 // -----------------------------------------------------------------------
