@@ -1,7 +1,7 @@
 <?php
 /**
  * -----------------------------------------------------------------------
- * Brasil Feriados — Plugin GLPI 11
+ * Brasil Feriados — Plugin GLPI 10+
  * Sincroniza feriados nacionais (Brasil API) e feriados locais
  * recorrentes na tabela nativa glpi_holidays.
  * -----------------------------------------------------------------------
@@ -12,8 +12,8 @@
  * -----------------------------------------------------------------------
  */
 
-define('PLUGIN_BRASILFERIADOS_VERSION', '1.1.2');
-define('PLUGIN_BRASILFERIADOS_MIN_GLPI', '11.0.0');
+define('PLUGIN_BRASILFERIADOS_VERSION', '1.1.3');
+define('PLUGIN_BRASILFERIADOS_MIN_GLPI', '10.0.0');
 
 // -----------------------------------------------------------------------
 // Inicialização — chamada pelo core toda vez que o plugin está ativo
@@ -55,7 +55,7 @@ function plugin_version_brasilferiados() {
         'name'           => 'Brasil Feriados',
         'version'        => PLUGIN_BRASILFERIADOS_VERSION,
         'author'         => 'andrefelipeufcg',
-        'license'        => 'GPLv3+',
+        'license'        => 'GPL v3+',
         'homepage'       => 'https://github.com/andrefelipeufcg/brasilferiados',
         'requirements'   => [
             'glpi' => [
@@ -70,7 +70,7 @@ function plugin_version_brasilferiados() {
 // -----------------------------------------------------------------------
 function plugin_brasilferiados_check_prerequisites() {
     if (version_compare(GLPI_VERSION, PLUGIN_BRASILFERIADOS_MIN_GLPI, '<')) {
-        echo __('Este plugin requer GLPI 11.0.0 ou superior.', 'brasilferiados');
+        echo sprintf(__('Este plugin requer GLPI %s ou superior.', 'brasilferiados'), PLUGIN_BRASILFERIADOS_MIN_GLPI);
         return false;
     }
     if (!function_exists('curl_init')) {
