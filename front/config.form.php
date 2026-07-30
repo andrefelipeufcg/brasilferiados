@@ -15,7 +15,7 @@ include $inc;
 Session::checkRight("config", UPDATE);
 
 global $CFG_GLPI;
-$form_url = $CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php';
+$form_url = Plugin::getWebDir('brasilferiados') . '/front/config.form.php';
 
 
 
@@ -115,7 +115,7 @@ if (isset($_POST['update_config'])) {
     
     global $CFG_GLPI;
     if ($apiProvider === 'importador_gov_federal') {
-        Html::redirect($CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php?load_national=1');
+        Html::redirect(Plugin::getWebDir('brasilferiados') . '/front/config.form.php?load_national=1');
     } else {
         Html::redirect($form_url);
     }
@@ -250,7 +250,7 @@ foreach (array_keys($providerList) as $key) {
 
 $params = [
     'form_url'          => $form_url,
-    'local_form_url'    => $CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/local.form.php',
+    'local_form_url'    => Plugin::getWebDir('brasilferiados') . '/front/local.form.php',
     'csrfToken'         => $csrfToken,
     'apiProvider'       => $apiProvider,
     'providerLabel'     => $providerLabel,

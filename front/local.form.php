@@ -30,7 +30,7 @@ if (isset($_POST['delete_local'])) {
         Session::addMessageAfterRedirect(__('Feriado local excluído com sucesso.', 'brasilferiados'), true, INFO);
     }
     global $CFG_GLPI;
-    Html::redirect($CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php');
+    Html::redirect(Plugin::getWebDir('brasilferiados') . '/front/config.form.php');
 }
 
 // -----------------------------------------------------------------------
@@ -67,7 +67,7 @@ if (isset($_POST['save_local'])) {
             Session::addMessageAfterRedirect($e, false, ERROR);
         }
         global $CFG_GLPI;
-        Html::redirect($CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php');
+        Html::redirect(Plugin::getWebDir('brasilferiados') . '/front/config.form.php');
     }
 
     if ($id > 0) {
@@ -90,5 +90,5 @@ if (isset($_POST['save_local'])) {
     }
 
     global $CFG_GLPI;
-    Html::redirect($CFG_GLPI['root_doc'] . '/plugins/brasilferiados/front/config.form.php');
+    Html::redirect(Plugin::getWebDir('brasilferiados') . '/front/config.form.php');
 }
