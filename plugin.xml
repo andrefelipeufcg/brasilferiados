@@ -1,9 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <root>
     <name>Brasil Feriados</name>
     <key>brasilferiados</key>
     <state>stable</state>
-    <logo>logo.png</logo>
+    <logo>https://raw.githubusercontent.com/andrefelipeufcg/brasilferiados/main/logo.png</logo>
     
     <description>
         <short>
@@ -53,7 +52,7 @@
         <lang>pt_BR</lang>
     </langs>
     
-    <license>GPLv3+</license>
+    <license>GPL v3+</license>
     
     <tags>
         <en>
