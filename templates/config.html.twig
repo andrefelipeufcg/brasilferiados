@@ -12,6 +12,7 @@
 
     .bf-alert-info { background: rgba(23, 138, 187, 0.1); border-left: 4px solid #178abb; padding: 12px 15px; border-radius: 4px; color: inherit; }
     .bf-alert-info i { color: #178abb; margin-right: 5px; }
+    .bf-calendar-select .select2-selection--single { max-width: none !important; }
 </style>
 
 <form method='post' action='{{ form_url }}' id='form_config'>
@@ -287,7 +288,7 @@
         <table class='tab_cadre_fixe' style='width: 700px; margin-bottom: 20px;'>
             <tr class='tab_bg_1'>
                 <td style='width: 40%; vertical-align: top; padding-top: 15px;'>{{ __('Calendário Principal de Atendimento', 'brasilferiados') }} <span style='color:red;'>*</span></td>
-                <td>
+                <td class='bf-calendar-select'>
                     {{ calendarDropdown|raw }}
                     <br><small class='text-muted'>{{ __('Os feriados serão vinculados a este calendário durante a Sincronização Manual.', 'brasilferiados') }}</small>
                 </td>

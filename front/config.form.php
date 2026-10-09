@@ -266,7 +266,7 @@ $params = [
     'isLoaded'          => $isLoaded,
     'feriadosLocais'    => \GlpiPlugin\Brasilferiados\Local::listarTodos(),
     'calendarsId'       => $calendarsId,
-    'calendarDropdown'  => Calendar::dropdown(['name' => 'calendars_id', 'value' => $calendarsId, 'display' => false])
+    'calendarDropdown'  => Calendar::dropdown(['name' => 'calendars_id', 'value' => $calendarsId, 'display' => false, 'width' => '100%'])
 ];
 
 \Glpi\Application\View\TemplateRenderer::getInstance()->display('@brasilferiados/config.html.twig', $params);
