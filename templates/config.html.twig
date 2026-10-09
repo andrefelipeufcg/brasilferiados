@@ -10,8 +10,8 @@
     [data-bs-theme='dark'] .bf-btn-success   { background: #3ccf6a; color: #08210f; border-color: #5bdc82; }
     [data-bs-theme='dark'] .bf-btn-warning   { background: #fcc419; color: #1f1a00; border-color: #ffd43b; }
 
-    .bf-alert-info { background: #e8f4fd; border-left: 4px solid #2196F3; padding: 12px 15px; border-radius: 4px; color: #0c5460; }
-    [data-bs-theme='dark'] .bf-alert-info { background: #082a47; border-left-color: #6ea8fe; color: #cfe2ff; }
+    .bf-alert-info { background: rgba(23, 138, 187, 0.1); border-left: 4px solid #178abb; padding: 12px 15px; border-radius: 4px; color: inherit; }
+    .bf-alert-info i { color: #178abb; margin-right: 5px; }
 </style>
 
 <form method='post' action='{{ form_url }}' id='form_config'>
@@ -29,7 +29,7 @@
             <tr class='tab_bg_1'>
                 <td style='width: 40%; vertical-align: top; padding-top: 15px;'>{{ __('API de Feriados / Importador', 'brasilferiados') }}</td>
                 <td>
-                    <select name='api_provider' id='api_provider_select' class='form-select' style='width: auto; display: inline-block;'>
+                    <select name='api_provider' id='api_provider_select' class='form-select' style='width: 100%; display: inline-block;'>
                         {% for key, label in providerList %}
                             <option value='{{ key }}' {% if key == apiProvider %}selected='selected'{% endif %}>{{ label }}</option>
                         {% endfor %}
@@ -46,7 +46,7 @@
                         {% if field.type == 'info' %}
                             <td colspan='2' style='padding: 10px;'>
                                 <div class='bf-alert-info'>
-                                    <i class='fas fa-info-circle'></i> {{ field.content|raw }}
+                                    <i class='fas fa-info-circle'></i><span>{{ field.content|raw }}</span>
                                 </div>
                             </td>
                         {% else %}
