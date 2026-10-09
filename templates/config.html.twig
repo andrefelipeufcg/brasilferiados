@@ -9,6 +9,9 @@
     [data-bs-theme='dark'] .bf-btn-secondary { background: #3a4a63; color: #e6edf7; border-color: #52627d; }
     [data-bs-theme='dark'] .bf-btn-success   { background: #3ccf6a; color: #08210f; border-color: #5bdc82; }
     [data-bs-theme='dark'] .bf-btn-warning   { background: #fcc419; color: #1f1a00; border-color: #ffd43b; }
+
+    .bf-alert-info { background: #e8f4fd; border-left: 4px solid #2196F3; padding: 12px 15px; border-radius: 4px; color: #0c5460; }
+    [data-bs-theme='dark'] .bf-alert-info { background: #082a47; border-left-color: #6ea8fe; color: #cfe2ff; }
 </style>
 
 <form method='post' action='{{ form_url }}' id='form_config'>
@@ -42,8 +45,8 @@
                     <tr class='tab_bg_1 provider-field-{{ key }}' {{ displayStyle|raw }}>
                         {% if field.type == 'info' %}
                             <td colspan='2' style='padding: 10px;'>
-                                <div style='background: #e8f4fd; border-left: 4px solid #2196F3; padding: 12px 15px; border-radius: 4px;'>
-                                    <i class='fas fa-info-circle' style='color: #2196F3;'></i> {{ field.content|raw }}
+                                <div class='bf-alert-info'>
+                                    <i class='fas fa-info-circle'></i> {{ field.content|raw }}
                                 </div>
                             </td>
                         {% else %}
@@ -119,7 +122,7 @@
             <tr class='tab_bg_2'>
                 <td colspan='2' class='center' style='padding: 10px;'>
                     <button type='submit' class='btn bf-btn bf-btn-warning'>{{ __('Salvar', 'brasilferiados') }}</button>
-                </td>radq
+                </td>
             </tr>
         </table>
         
