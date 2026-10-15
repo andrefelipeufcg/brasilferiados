@@ -114,11 +114,7 @@ if (isset($_POST['update_config'])) {
     );
     
     global $CFG_GLPI;
-    if ($apiProvider === 'importador_gov_federal') {
-        Html::redirect(\Plugin::getPhpDir('brasilferiados', false) . '/front/config.form.php?load_national=1');
-    } else {
-        Html::redirect($form_url);
-    }
+    Html::redirect(\Plugin::getPhpDir('brasilferiados', false) . '/front/config.form.php?load_national=1');
 }
 
 // -----------------------------------------------------------------------
