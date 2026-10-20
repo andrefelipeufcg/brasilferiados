@@ -1,4 +1,8 @@
-# Brasil Feriados — Plugin GLPI 10+
+# Brasil Feriados — Plugin GLPI
+[![GLPI 10](https://img.shields.io/badge/GLPI-10-red.svg)](https://glpi-project.org/)
+[![GLPI 11](https://img.shields.io/badge/GLPI-11-blue.svg)](https://glpi-project.org/)
+[![GLPI 12](https://img.shields.io/badge/GLPI-12-FFD700.svg)](https://glpi-project.org/)
+[![License: GPL v3+](https://img.shields.io/badge/License-GPL%20v3%2B-green.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 
 > Sincroniza automaticamente os feriados brasileiros (nacionais e municipais) via provedores externos (como [Brasil API](https://brasilapi.com.br), [FeriadosAPI](https://feriadosapi.com) ou Importador de Portaria do Governo Federal) e feriados locais cadastrados, inserindo na tabela nativa `glpi_holidays` do GLPI com associação automática ao calendário de atendimento.
 
