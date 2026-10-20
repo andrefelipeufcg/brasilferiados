@@ -41,10 +41,7 @@ if (!$config->getFromDB(1)) {
 // POST: Salvar configuração
 // -----------------------------------------------------------------------
 if (isset($_POST['update_config'])) {
-    // GLPI 11+ valida e consome o CSRF automaticamente no middleware
-    if (!class_exists('Glpi\Kernel\Listener\ControllerListener\CheckCsrfListener')) {
-        Session::checkCSRF($_POST);
-    }
+    // inc/includes.php já valida e consome o token CSRF.
     $isActive = isset($_POST['is_active']) ? 1 : 0;
     $apiProvider    = $_POST['api_provider'] ?? 'brasilapi';
     $apiToken       = trim($_POST['api_token'] ?? '');
@@ -121,10 +118,7 @@ if (isset($_POST['update_config'])) {
 // POST: Sincronização manual
 // -----------------------------------------------------------------------
 if (isset($_POST['sync_now'])) {
-    // GLPI 11+ valida e consome o CSRF automaticamente no middleware
-    if (!class_exists('Glpi\Kernel\Listener\ControllerListener\CheckCsrfListener')) {
-        Session::checkCSRF($_POST);
-    }
+    // inc/includes.php já valida e consome o token CSRF.
     $year = (int)($_POST['sync_year'] ?? date('Y'));
     $loadedYear = (int)($_POST['loaded_year'] ?? 0);
     $manualCalendarId = (int)($_POST['manual_calendars_id'] ?? 0);
@@ -189,7 +183,6 @@ if (isset($_POST['sync_now'])) {
 // -----------------------------------------------------------------------
 // Lógica para renderização de Feriados (GET / POST load_national)
 // -----------------------------------------------------------------------
-$csrfToken = Session::getNewCSRFToken();
 $isActive       = (int)($config->fields['is_active'] ?? 0);
 $calendarsId    = (int)($config->fields['calendars_id'] ?? 0);
 $apiProvider    = $config->fields['api_provider'] ?? 'brasilapi';
@@ -247,7 +240,6 @@ foreach (array_keys($providerList) as $key) {
 $params = [
     'form_url'          => $form_url,
     'local_form_url'    => \Plugin::getPhpDir('brasilferiados', false) . '/front/local.form.php',
-    'csrfToken'         => $csrfToken,
     'apiProvider'       => $apiProvider,
     'providerLabel'     => $providerLabel,
     'providerList'      => $providerList,

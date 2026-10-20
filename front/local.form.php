@@ -21,9 +21,7 @@ $feriadoLocal = new Local();
 // POST: Excluir feriado local
 // -----------------------------------------------------------------------
 if (isset($_POST['delete_local'])) {
-    if (!class_exists('Glpi\Kernel\Listener\ControllerListener\CheckCsrfListener')) {
-        Session::checkCSRF($_POST);
-    }
+    // inc/includes.php já valida e consome o token CSRF.
     $id = (int)($_POST['id'] ?? 0);
     if ($id > 0 && $feriadoLocal->getFromDB($id)) {
         $feriadoLocal->delete(['id' => $id]);
@@ -37,9 +35,7 @@ if (isset($_POST['delete_local'])) {
 // POST: Salvar (inserir ou atualizar)
 // -----------------------------------------------------------------------
 if (isset($_POST['save_local'])) {
-    if (!class_exists('Glpi\Kernel\Listener\ControllerListener\CheckCsrfListener')) {
-        Session::checkCSRF($_POST);
-    }
+    // inc/includes.php já valida e consome o token CSRF.
     $id   = (int)($_POST['id'] ?? 0);
     $dia  = (int)($_POST['dia'] ?? 0);
     $mes  = (int)($_POST['mes'] ?? 0);

@@ -16,7 +16,7 @@
 </style>
 
 <form method='post' action='{{ form_url }}' id='form_config'>
-    <input type='hidden' name='_glpi_csrf_token' value='{{ csrfToken }}'>
+    <input type='hidden' name='_glpi_csrf_token' value='{{ csrf_token(true) }}'>
     <input type='hidden' name='update_config' value='1'>
 
     <div class='center' style='margin-top: 20px;'>
@@ -137,7 +137,7 @@
 
 <div class='center' style='margin-top: 20px;'>
     <form method='post' action='{{ form_url }}' style='margin-bottom: 0;'>
-        <input type='hidden' name='_glpi_csrf_token' value='{{ csrfToken }}'>
+        <input type='hidden' name='_glpi_csrf_token' value='{{ csrf_token(true) }}'>
         <input type='hidden' name='load_national' value='1'>
 
         <table class='tab_cadre_fixe' style='width: 700px;'>
@@ -258,7 +258,7 @@
 </div>
 
 <form method='post' action='{{ form_url }}' id='form_sync_manual'>
-    <input type='hidden' name='_glpi_csrf_token' value='{{ csrfToken }}'>
+    <input type='hidden' name='_glpi_csrf_token' value='{{ csrf_token(true) }}'>
     <div id='national_holidays_container' style='display: none;'>
         {% if isLoaded and apiHolidays is not empty %}
             {% for idx, f in apiHolidays %}
@@ -304,7 +304,7 @@
 </form>
 
 <form method='post' action='{{ local_form_url }}' id='form_delete_local' style='display:none;'>
-    <input type='hidden' name='_glpi_csrf_token' value='{{ csrfToken }}'>
+    <input type='hidden' name='_glpi_csrf_token' value='{{ csrf_token(true) }}'>
     <input type='hidden' name='id' id='delete_local_id' value='0'>
     <input type='hidden' name='delete_local' value='1'>
 </form>
@@ -547,7 +547,7 @@ function salvarEdicaoNacional() {
   <div class="modal-dialog">
     <div class="modal-content">
       <form method="post" action="{{ local_form_url }}">
-          <input type='hidden' name='_glpi_csrf_token' value='{{ csrfToken }}'>
+          <input type='hidden' name='_glpi_csrf_token' value='{{ csrf_token(true) }}'>
           <input type="hidden" name="id" id="modal_fl_id" value="0">
           <input type="hidden" name="save_local" value="1">
           <div class="modal-header">
