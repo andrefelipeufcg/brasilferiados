@@ -15,7 +15,7 @@ include $inc;
 Session::checkRight("config", UPDATE);
 
 global $CFG_GLPI;
-$form_url = Plugin::getWebDir('brasilferiados') . '/front/config.form.php';
+$form_url = \Plugin::getPhpDir('brasilferiados', false) . '/front/config.form.php';
 
 
 
@@ -114,11 +114,7 @@ if (isset($_POST['update_config'])) {
     );
     
     global $CFG_GLPI;
-    if ($apiProvider === 'importador_gov_federal') {
-        Html::redirect(Plugin::getWebDir('brasilferiados') . '/front/config.form.php?load_national=1');
-    } else {
-        Html::redirect($form_url);
-    }
+    Html::redirect(\Plugin::getPhpDir('brasilferiados', false) . '/front/config.form.php?load_national=1');
 }
 
 // -----------------------------------------------------------------------
@@ -250,7 +246,7 @@ foreach (array_keys($providerList) as $key) {
 
 $params = [
     'form_url'          => $form_url,
-    'local_form_url'    => Plugin::getWebDir('brasilferiados') . '/front/local.form.php',
+    'local_form_url'    => \Plugin::getPhpDir('brasilferiados', false) . '/front/local.form.php',
     'csrfToken'         => $csrfToken,
     'apiProvider'       => $apiProvider,
     'providerLabel'     => $providerLabel,
@@ -266,7 +262,7 @@ $params = [
     'isLoaded'          => $isLoaded,
     'feriadosLocais'    => \GlpiPlugin\Brasilferiados\Local::listarTodos(),
     'calendarsId'       => $calendarsId,
-    'calendarDropdown'  => Calendar::dropdown(['name' => 'calendars_id', 'value' => $calendarsId, 'display' => false])
+    'calendarDropdown'  => Calendar::dropdown(['name' => 'calendars_id', 'value' => $calendarsId, 'display' => false, 'width' => '100%'])
 ];
 
 \Glpi\Application\View\TemplateRenderer::getInstance()->display('@brasilferiados/config.html.twig', $params);

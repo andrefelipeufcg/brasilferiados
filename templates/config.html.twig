@@ -1,3 +1,20 @@
+<style>
+    .bf-btn { font-weight: 600; border: 1px solid transparent; }
+    .bf-btn:hover, .bf-btn:focus { filter: brightness(1.1); }
+    .bf-btn-primary   { background: #206bc4; color: #fff; border-color: #1a5aa6; }
+    .bf-btn-secondary { background: #e9ecef; color: #1f2937; border-color: #ced4da; }
+    .bf-btn-success   { background: #2b8a3e; color: #fff; border-color: #237032; }
+    .bf-btn-warning   { background: #f59f00; color: #1f2937; border-color: #d98a00; }
+    [data-bs-theme='dark'] .bf-btn-primary   { background: #4299e1; color: #0b1220; border-color: #63b3ed; }
+    [data-bs-theme='dark'] .bf-btn-secondary { background: #3a4a63; color: #e6edf7; border-color: #52627d; }
+    [data-bs-theme='dark'] .bf-btn-success   { background: #3ccf6a; color: #08210f; border-color: #5bdc82; }
+    [data-bs-theme='dark'] .bf-btn-warning   { background: #fcc419; color: #1f1a00; border-color: #ffd43b; }
+
+    .bf-alert-info { background: rgba(23, 138, 187, 0.1); border-left: 4px solid #178abb; padding: 12px 15px; border-radius: 4px; color: inherit; }
+    .bf-alert-info i { color: #178abb; margin-right: 5px; }
+    .bf-calendar-select .select2-selection--single { max-width: none !important; }
+</style>
+
 <form method='post' action='{{ form_url }}' id='form_config'>
     <input type='hidden' name='_glpi_csrf_token' value='{{ csrfToken }}'>
     <input type='hidden' name='update_config' value='1'>
@@ -13,7 +30,7 @@
             <tr class='tab_bg_1'>
                 <td style='width: 40%; vertical-align: top; padding-top: 15px;'>{{ __('API de Feriados / Importador', 'brasilferiados') }}</td>
                 <td>
-                    <select name='api_provider' id='api_provider_select' class='form-select' style='width: auto; display: inline-block;'>
+                    <select name='api_provider' id='api_provider_select' class='form-select' style='width: 100%; display: inline-block;'>
                         {% for key, label in providerList %}
                             <option value='{{ key }}' {% if key == apiProvider %}selected='selected'{% endif %}>{{ label }}</option>
                         {% endfor %}
@@ -29,8 +46,8 @@
                     <tr class='tab_bg_1 provider-field-{{ key }}' {{ displayStyle|raw }}>
                         {% if field.type == 'info' %}
                             <td colspan='2' style='padding: 10px;'>
-                                <div style='background: #e8f4fd; border-left: 4px solid #2196F3; padding: 12px 15px; border-radius: 4px;'>
-                                    <i class='fas fa-info-circle' style='color: #2196F3;'></i> {{ field.content|raw }}
+                                <div class='bf-alert-info'>
+                                    <i class='fas fa-info-circle'></i><span>{{ field.content|raw }}</span>
                                 </div>
                             </td>
                         {% else %}
@@ -82,7 +99,7 @@
             
             <tr class='tab_bg_2'>
                 <td colspan='2' class='center' style='padding: 10px;'>
-                    <button type='submit' class='btn btn-secondary'>{{ __('Salvar configurações de provedor', 'brasilferiados') }}</button>
+                    <button type='submit' class='btn bf-btn bf-btn-warning'>{{ __('Salvar configurações de provedor', 'brasilferiados') }}</button>
                 </td>
             </tr>
         </table>
@@ -105,7 +122,7 @@
             </tr>
             <tr class='tab_bg_2'>
                 <td colspan='2' class='center' style='padding: 10px;'>
-                    <button type='submit' class='btn btn-secondary'>{{ __('Salvar', 'brasilferiados') }}</button>
+                    <button type='submit' class='btn bf-btn bf-btn-warning'>{{ __('Salvar configurações de sincronização automática', 'brasilferiados') }}</button>
                 </td>
             </tr>
         </table>
@@ -128,7 +145,7 @@
                 <th colspan='4' style='text-align: left; padding: 10px;'>
                     {{ __('Feriados do ano', 'brasilferiados') }}
                     <input type='number' name='load_year' id='sync_year_input' value='{{ loadedYear }}' min='2001' max='2099' style='width: 90px; margin-left: 10px;' class='form-control d-inline-block'>
-                    <button type='submit' class='btn btn-warning' style='margin-left: 10px; color: white;'>{{ __('Carregar Feriados', 'brasilferiados') }}</button>
+                    <button type='submit' class='btn bf-btn bf-btn-warning' style='margin-left: 10px;'>{{ __('Carregar Feriados', 'brasilferiados') }}</button>
                     <span style='margin-left: 15px; font-weight: normal; font-size: 0.85em; color: #666;'>
                         <i class='fas fa-plug'></i> {{ __('Provedor', 'brasilferiados') }}: <strong>{{ providerLabel }}</strong>
                     </span>
@@ -145,7 +162,7 @@
             {% if not isLoaded %}
                 <tr class='tab_bg_1'>
                     <td colspan='4' class='center' style='padding: 20px; color: #888;'>
-                        <i class='fas fa-info-circle'></i> {{ __('Clique em \'Carregar Feriados\' para visualizar e remover os indesejados.', 'brasilferiados') }}
+                        <i class='fas fa-info-circle'></i> {{ __('Clique em \'Carregar Feriados\' para visualizar, editar ou remover feriados.', 'brasilferiados') }}
                     </td>
                 </tr>
             {% elseif apiHolidays is empty %}
@@ -232,7 +249,7 @@
         
         <tr class='tab_bg_2'>
             <td colspan='4' class='center' style='padding: 10px;'>
-                <button type='button' class='btn btn-success' onclick='abrirModalFeriado(0, "", "", "", 1)'>
+                <button type='button' class='btn bf-btn bf-btn-success' onclick='abrirModalFeriado(0, "", "", "", 1)'>
                     <i class='fas fa-plus'></i> {{ __('Adicionar Feriado Local', 'brasilferiados') }}
                 </button>
             </td>
@@ -271,7 +288,7 @@
         <table class='tab_cadre_fixe' style='width: 700px; margin-bottom: 20px;'>
             <tr class='tab_bg_1'>
                 <td style='width: 40%; vertical-align: top; padding-top: 15px;'>{{ __('Calendário Principal de Atendimento', 'brasilferiados') }} <span style='color:red;'>*</span></td>
-                <td>
+                <td class='bf-calendar-select'>
                     {{ calendarDropdown|raw }}
                     <br><small class='text-muted'>{{ __('Os feriados serão vinculados a este calendário durante a Sincronização Manual.', 'brasilferiados') }}</small>
                 </td>
@@ -279,7 +296,7 @@
         </table>
 
         <input type='hidden' name='sync_year' id='hidden_sync_year' value='{{ loadedYear }}'>
-        <button type='button' class='btn btn-secondary' onclick='validarSincronizacao()' style='color: white;'>{{ __('Sincronizar Agora', 'brasilferiados') }}</button>
+        <button type='button' class='btn bf-btn bf-btn-primary' onclick='validarSincronizacao()'>{{ __('Sincronizar Agora', 'brasilferiados') }}</button>
         <input type='hidden' name='manual_calendars_id' id='hidden_manual_cal' value='0'>
         <input type='submit' name='sync_now' id='real_sync_btn' style='display: none;'>
         <hr style='width: 700px; border-top: 3px solid black; margin: 20px auto 50px auto;'>
@@ -543,8 +560,14 @@ function salvarEdicaoNacional() {
                     <input type="number" name="dia" id="modal_fl_dia" class="form-control" min="1" max="31" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">{{ __("Mês (1-12)", "brasilferiados") }}</label>
-                    <input type="number" name="mes" id="modal_fl_mes" class="form-control" min="1" max="12" required>
+                    <label class="form-label">{{ __("Mês", "brasilferiados") }}</label>
+                    <select name="mes" id="modal_fl_mes" class="form-select" required>
+                        <option value="">{{ __("Selecione o mês...", "brasilferiados") }}</option>
+                        {% set meses = [__('Janeiro', 'brasilferiados'), __('Fevereiro', 'brasilferiados'), __('Março', 'brasilferiados'), __('Abril', 'brasilferiados'), __('Maio', 'brasilferiados'), __('Junho', 'brasilferiados'), __('Julho', 'brasilferiados'), __('Agosto', 'brasilferiados'), __('Setembro', 'brasilferiados'), __('Outubro', 'brasilferiados'), __('Novembro', 'brasilferiados'), __('Dezembro', 'brasilferiados')] %}
+                        {% for nomeMes in meses %}
+                            <option value="{{ loop.index }}">{{ nomeMes }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">{{ __("Nome do Feriado (ex: Padroeira da Cidade)", "brasilferiados") }}</label>
@@ -558,8 +581,8 @@ function salvarEdicaoNacional() {
                 </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __("Cancelar", "brasilferiados") }}</button>
-            <button type="submit" class="btn btn-primary">{{ __("Salvar", "brasilferiados") }}</button>
+            <button type="button" class="btn bf-btn bf-btn-secondary" data-bs-dismiss="modal">{{ __("Cancelar", "brasilferiados") }}</button>
+            <button type="submit" class="btn bf-btn bf-btn-primary">{{ __("Salvar", "brasilferiados") }}</button>
           </div>
       </form>
     </div>
@@ -593,8 +616,8 @@ function salvarEdicaoNacional() {
                 </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __("Cancelar", "brasilferiados") }}</button>
-            <button type="button" class="btn btn-primary" onclick="salvarEdicaoNacional()">{{ __("Confirmar Edição", "brasilferiados") }}</button>
+            <button type="button" class="btn bf-btn bf-btn-secondary" data-bs-dismiss="modal">{{ __("Cancelar", "brasilferiados") }}</button>
+            <button type="button" class="btn bf-btn bf-btn-primary" onclick="salvarEdicaoNacional()">{{ __("Confirmar Edição", "brasilferiados") }}</button>
           </div>
     </div>
   </div>
