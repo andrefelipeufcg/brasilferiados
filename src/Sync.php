@@ -2,10 +2,15 @@
 namespace GlpiPlugin\Brasilferiados;
 
 use CommonDBTM;
+use CommonGLPI;
 use CronTask;
 use Holiday;
 use Calendar;
 use Calendar_Holiday;
+use Session;
+use Html;
+use GLPIKey;
+use Glpi\Application\View\TemplateRenderer;
 
 if (!defined('GLPI_ROOT')) {
     die("Desculpe. Você não pode acessar este arquivo diretamente.");
@@ -13,12 +18,185 @@ if (!defined('GLPI_ROOT')) {
 
 class Sync extends CommonDBTM {
 
+    public function __construct() {
+        $this->get_item_to_display_tab = true;
+        parent::__construct();
+    }
+
+    /**
+     * Não exibe a barra de navegação/ID do item (ex: 'Brasil Feriados - N/A - ID 1')
+     * pois este plugin possui apenas um único registro de configuração global.
+     */
+    public function showNavigationHeader($options = []) {
+        return;
+    }
+
+    public static function canCreate(): bool {
+        return Session::haveRight('config', UPDATE);
+    }
+
+    public static function canView(): bool {
+        return Session::haveRight('config', READ);
+    }
+
+    public static function canUpdate(): bool {
+        return Session::haveRight('config', UPDATE);
+    }
+
+    public static function canDelete(): bool {
+        return Session::haveRight('config', UPDATE);
+    }
+
+    public static function canPurge(): bool {
+        return Session::haveRight('config', UPDATE);
+    }
+
+    public function canCreateItem(): bool {
+        return self::canCreate();
+    }
+
+    public function canViewItem(): bool {
+        return self::canView();
+    }
+
+    public function canUpdateItem(): bool {
+        return self::canUpdate();
+    }
+
+    public function canDeleteItem(): bool {
+        return self::canDelete();
+    }
+
+    public function canPurgeItem(): bool {
+        return self::canPurge();
+    }
+
     public static function getTable($classname = '') {
         return 'glpi_plugin_brasilferiados_configs';
     }
 
     static function getTypeName($nb = 0) {
         return __('Brasil Feriados', 'brasilferiados');
+    }
+
+    public function defineTabs($options = []) {
+        $ong = [];
+        $ong[__CLASS__ . '$1'] = self::createTabEntry(__('Provedor', 'brasilferiados'), 0, __CLASS__, 'ti ti-plug');
+        $ong[__CLASS__ . '$2'] = self::createTabEntry(__('Sincronização automática', 'brasilferiados'), 0, __CLASS__, 'ti ti-calendar-event');
+        $ong[__CLASS__ . '$3'] = self::createTabEntry(__('Sincronização Manual', 'brasilferiados'), 0, __CLASS__, 'ti ti-refresh');
+        return $ong;
+    }
+
+    public function getTabNameForItem(\CommonGLPI $item, $withtemplate = 0) {
+        if ($item->getType() === __CLASS__) {
+            $ong = [];
+            $ong[1] = self::createTabEntry(__('Provedor', 'brasilferiados'), 0, $item::class, 'ti ti-plug');
+            $ong[2] = self::createTabEntry(__('Sincronização automática', 'brasilferiados'), 0, $item::class, 'ti ti-calendar-event');
+            $ong[3] = self::createTabEntry(__('Sincronização Manual', 'brasilferiados'), 0, $item::class, 'ti ti-refresh');
+            return $ong;
+        }
+        return '';
+    }
+
+    public static function displayTabContentForItem(\CommonGLPI $item, $tabnum = 1, $withtemplate = 0) {
+        if ($item->getType() !== __CLASS__) {
+            return false;
+        }
+
+        $tabnum = (int)$tabnum;
+        if ($tabnum < 1 || $tabnum > 3) {
+            return false;
+        }
+
+        $params = self::getTabViewParams($item, $tabnum);
+        TemplateRenderer::getInstance()->display('@brasilferiados/config.html.twig', $params);
+
+        return true;
+    }
+
+    public function showForm($ID, array $options = []) {
+        $this->initForm($ID, $options);
+        return self::displayTabContentForItem($this, 1);
+    }
+
+    public static function getTabViewParams(\CommonGLPI $item, int $tabnum = 1): array {
+        $form_url       = \Plugin::getPhpDir('brasilferiados', false) . '/front/config.form.php';
+        $local_form_url = \Plugin::getPhpDir('brasilferiados', false) . '/front/local.form.php';
+
+        $isActive       = (int)($item->fields['is_active'] ?? 0);
+        $calendarsId    = (int)($item->fields['calendars_id'] ?? 0);
+        $apiProvider    = $item->fields['api_provider'] ?? 'brasilapi';
+        $apiToken       = $item->fields['api_token'] ?? '';
+        if (!empty($apiToken)) {
+            $apiToken = (new GLPIKey())->decrypt($apiToken);
+        }
+        $apiUf          = $item->fields['api_uf'] ?? '';
+        $apiCidadeIbge  = $item->fields['api_cidade_ibge'] ?? '';
+        $govFederalText = $item->fields['gov_federal_text'] ?? '';
+        $anoAtual       = (int)date('Y');
+
+        $loadedYear  = $anoAtual;
+        $apiHolidays = [];
+        $isLoaded    = false;
+
+        if (isset($_REQUEST['load_national'])) {
+            $loadedYear = (int)($_REQUEST['load_year'] ?? $anoAtual);
+            if ($apiProvider === 'importador_gov_federal' && preg_match('/no ano de\s*(\d{4})/i', $govFederalText, $matches)) {
+                $loadedYear = (int)$matches[1];
+            }
+            $apiResult = self::fetchFromProvider($loadedYear, $item->fields);
+            $apiHolidays = $apiResult['feriados'] ?? [];
+            if (!empty($apiResult['erros'])) {
+                foreach ($apiResult['erros'] as $err) {
+                    Session::addMessageAfterRedirect($err, false, ERROR);
+                }
+            }
+            $isLoaded = true;
+        } else if ($isActive) {
+            $loadedYear = $anoAtual;
+            $apiResult = self::fetchFromProvider($loadedYear, $item->fields);
+            $apiHolidays = $apiResult['feriados'] ?? [];
+            $isLoaded = true;
+        }
+
+        $providerList = self::getProviderList();
+        $providerLabel = $providerList[$apiProvider] ?? 'Brasil API';
+
+        $allProviderFields = [];
+        foreach (array_keys($providerList) as $key) {
+            $p = self::getProvider($key);
+            $allProviderFields[$key] = $p->getConfigFields();
+        }
+
+        $calendarDropdown = Calendar::dropdown([
+            'name'    => 'calendars_id',
+            'value'   => $calendarsId,
+            'display' => false,
+            'width'   => '100%',
+        ]);
+
+        $feriadosLocais = Local::listarTodos();
+
+        return [
+            'form_url'          => $form_url,
+            'local_form_url'    => $local_form_url,
+            'apiProvider'       => $apiProvider,
+            'providerLabel'     => $providerLabel,
+            'providerList'      => $providerList,
+            'allProviderFields' => $allProviderFields,
+            'apiToken'          => $apiToken,
+            'apiUf'             => $apiUf,
+            'apiCidadeIbge'     => $apiCidadeIbge,
+            'govFederalText'    => $govFederalText,
+            'isActive'          => $isActive,
+            'loadedYear'        => $loadedYear,
+            'apiHolidays'       => $apiHolidays,
+            'isLoaded'          => $isLoaded,
+            'feriadosLocais'    => $feriadosLocais,
+            'calendarsId'       => $calendarsId,
+            'calendarDropdown'  => $calendarDropdown,
+            'tabnum'            => $tabnum,
+        ];
     }
 
     private static array $providers = [

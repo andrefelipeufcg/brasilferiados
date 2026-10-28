@@ -1,0 +1,42 @@
+<style>
+    /* Oculta barra de navegação/ID de item e botão de buscas salvas */
+    .navigationheader,
+    .saved-searches,
+    .card-header.main-header,
+    h3.navigationheader-title,
+    .bf-main-header {
+        display: none !important;
+    }
+
+    .bf-btn { font-weight: 600; border: 1px solid transparent; }
+    .bf-btn:hover, .bf-btn:focus { filter: brightness(1.1); }
+    .bf-btn-primary   { background: #206bc4; color: #fff; border-color: #1a5aa6; }
+    .bf-btn-secondary { background: #e9ecef; color: #1f2937; border-color: #ced4da; }
+    .bf-btn-success   { background: #2b8a3e; color: #fff; border-color: #237032; }
+    .bf-btn-warning   { background: #f59f00; color: #1f2937; border-color: #d98a00; }
+    [data-bs-theme='dark'] .bf-btn-primary   { background: #4299e1; color: #0b1220; border-color: #63b3ed; }
+    [data-bs-theme='dark'] .bf-btn-secondary { background: #3a4a63; color: #e6edf7; border-color: #52627d; }
+    [data-bs-theme='dark'] .bf-btn-success   { background: #3ccf6a; color: #08210f; border-color: #5bdc82; }
+    [data-bs-theme='dark'] .bf-btn-warning   { background: #fcc419; color: #1f1a00; border-color: #ffd43b; }
+
+    .bf-alert-info { background: rgba(23, 138, 187, 0.1); border-left: 4px solid #178abb; padding: 12px 15px; border-radius: 4px; color: inherit; }
+    .bf-alert-info i { color: #178abb; margin-right: 5px; }
+    .bf-calendar-select .select2-selection--single { max-width: none !important; }
+
+    /* Linha divisória visível em modo claro e escuro */
+    hr.bf-divider {
+        width: 700px;
+        max-width: 100%;
+        margin: 25px auto;
+        border: 0 !important;
+        border-top: 2px solid #5b6b7f !important;
+        opacity: 0.8 !important;
+    }
+    [data-bs-theme='dark'] hr.bf-divider,
+    [data-theme='dark'] hr.bf-divider,
+    body.theme-dark hr.bf-divider,
+    .theme-dark hr.bf-divider {
+        border-top: 2px solid #7c8ba1 !important;
+        opacity: 1 !important;
+    }
+</style>
