@@ -177,6 +177,16 @@ class Sync extends CommonDBTM {
 
         $feriadosLocais = Local::listarTodos();
 
+        $isAllTab = false;
+        if (isset($_REQUEST['_glpi_tab'])) {
+            $isAllTab = ((string)$_REQUEST['_glpi_tab'] === '-1');
+        } elseif (isset($_GET['tab'])) {
+            $isAllTab = ($_GET['tab'] === 'all');
+        } else {
+            $activeTab = Session::getActiveTab(__CLASS__);
+            $isAllTab = ($activeTab === '-1' || $activeTab === -1);
+        }
+
         return [
             'form_url'          => $form_url,
             'local_form_url'    => $local_form_url,
@@ -196,6 +206,7 @@ class Sync extends CommonDBTM {
             'calendarsId'       => $calendarsId,
             'calendarDropdown'  => $calendarDropdown,
             'tabnum'            => $tabnum,
+            'isAllTab'          => $isAllTab,
         ];
     }
 

@@ -1,4 +1,7 @@
 <div class='center' style='margin-top: 10px;'>
+    {% if not isAllTab %}
+        <hr class='bf-divider'>
+    {% endif %}
     <table class='tab_cadre_fixe' style='width: 700px;'>
         <tr><th colspan='2'>{{ __('Sincronização Manual', 'brasilferiados') }}</th></tr>
     </table>

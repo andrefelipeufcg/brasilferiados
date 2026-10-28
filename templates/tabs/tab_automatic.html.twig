@@ -4,6 +4,9 @@
     <input type='hidden' name='update_automatic' value='1'>
 
     <div class='center' style='margin-top: 10px;'>
+        {% if not isAllTab %}
+            <hr class='bf-divider'>
+        {% endif %}
         <table class='tab_cadre_fixe' style='width: 700px;'>
             <tr><th colspan='2'>{{ __('Sincronização Automática', 'brasilferiados') }}</th></tr>
             <tr class='tab_bg_1'>
