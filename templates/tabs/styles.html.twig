@@ -4,10 +4,30 @@
     .saved-searches,
     .card-header.main-header,
     h3.navigationheader-title,
-    .bf-main-header,
     hr,
     hr.bf-divider {
         display: none !important;
+    }
+
+    /* Elimina espaçamentos e margens excessivas entre as abas e painéis no GLPI */
+    body .tab-content > .tab-pane,
+    body .tab-pane {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    form#form_config_provider,
+    form#form_config_automatic,
+    form#form_config {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    .alltab {
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     .bf-btn { font-weight: 600; border: 1px solid transparent; }
@@ -29,7 +49,7 @@
     .tab_cadre_fixe {
         width: 700px !important;
         max-width: 100% !important;
-        margin: 0 auto 15px auto !important;
+        margin: 0 auto 12px auto !important;
         text-align: left !important;
         border-spacing: 0 !important;
         border-collapse: separate !important;

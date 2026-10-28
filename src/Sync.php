@@ -18,6 +18,9 @@ if (!defined('GLPI_ROOT')) {
 
 class Sync extends CommonDBTM {
 
+    /** Evita que o cabeçalho de configuração seja repetido pelo renderizador nativo da aba Todos. */
+    private static bool $configurationHeaderRendered = false;
+
     public function __construct() {
         $this->get_item_to_display_tab = true;
         parent::__construct();
@@ -82,7 +85,7 @@ class Sync extends CommonDBTM {
     public function defineTabs($options = []) {
         $ong = [];
         $ong[__CLASS__ . '$1'] = self::createTabEntry(__('Provedor', 'brasilferiados'), 0, __CLASS__, 'ti ti-plug');
-        $ong[__CLASS__ . '$2'] = self::createTabEntry(__('Sincronização automática', 'brasilferiados'), 0, __CLASS__, 'ti ti-calendar-event');
+        $ong[__CLASS__ . '$2'] = self::createTabEntry(__('Sincronização Automática', 'brasilferiados'), 0, __CLASS__, 'ti ti-calendar-event');
         $ong[__CLASS__ . '$3'] = self::createTabEntry(__('Sincronização Manual', 'brasilferiados'), 0, __CLASS__, 'ti ti-refresh');
         return $ong;
     }
@@ -91,7 +94,7 @@ class Sync extends CommonDBTM {
         if ($item->getType() === __CLASS__) {
             $ong = [];
             $ong[1] = self::createTabEntry(__('Provedor', 'brasilferiados'), 0, $item::class, 'ti ti-plug');
-            $ong[2] = self::createTabEntry(__('Sincronização automática', 'brasilferiados'), 0, $item::class, 'ti ti-calendar-event');
+            $ong[2] = self::createTabEntry(__('Sincronização Automática', 'brasilferiados'), 0, $item::class, 'ti ti-calendar-event');
             $ong[3] = self::createTabEntry(__('Sincronização Manual', 'brasilferiados'), 0, $item::class, 'ti ti-refresh');
             return $ong;
         }
@@ -177,14 +180,16 @@ class Sync extends CommonDBTM {
 
         $feriadosLocais = Local::listarTodos();
 
-        $isAllTab = false;
-        if (isset($_REQUEST['_glpi_tab'])) {
-            $isAllTab = ((string)$_REQUEST['_glpi_tab'] === '-1');
-        } elseif (isset($_GET['tab'])) {
-            $isAllTab = ($_GET['tab'] === 'all');
-        } else {
-            $activeTab = Session::getActiveTab(__CLASS__);
-            $isAllTab = ($activeTab === '-1' || $activeTab === -1);
+        // Na aba Todos, o GLPI chama este template uma vez para cada subaba.
+        // O cabeçalho deve ser exibido somente na primeira chamada.
+        $requestedTab = (string)($_REQUEST['_glpi_tab'] ?? '');
+        $isAllTab = $requestedTab === '-1';
+        if ($requestedTab === '' && isset($_GET['tab'])) {
+            $isAllTab = in_array((string)$_GET['tab'], ['all', '-1'], true);
+        }
+        if ($requestedTab === '' && !isset($_GET['tab'])) {
+            $activeTab = (string)Session::getActiveTab(__CLASS__);
+            $isAllTab = $activeTab === '-1' || $activeTab === 'all';
         }
 
         return [

@@ -1,1 +1,7 @@
-{# Cabeçalho removido conforme solicitação #}
+{% if tabnum == 1 %}
+<div class='center bf-main-header' style='margin-top: 5px;'>
+    <table class='tab_cadre_fixe {% if isDarkMode %}bf-dark-theme{% endif %}' style='width: 700px;'>
+        <tr><th colspan='2'>{{ __('Brasil Feriados — Configuração', 'brasilferiados') }}</th></tr>
+    </table>
+</div>
+{% endif %}
