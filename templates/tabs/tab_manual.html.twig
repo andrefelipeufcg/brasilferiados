@@ -12,7 +12,7 @@
         <div class='bf-table-wrapper'>
             <table class='tab_cadre_fixe bf-table-responsive {% if isDarkMode %}bf-dark-theme{% endif %}'>
             <tr class='tab_bg_2'>
-                <th colspan='4' style='text-align: left; padding: 10px;'>
+                <th colspan='5' style='text-align: left; padding: 10px;'>
                     <div style='display: flex; flex-wrap: wrap; align-items: center; gap: 8px;'>
                         <span>{{ __('Feriados do ano', 'brasilferiados') }}</span>
                         <input type='number' name='load_year' id='sync_year_input' value='{{ loadedYear }}' min='2001' max='2099' style='width: 85px;' class='form-control d-inline-block'>
@@ -25,6 +25,7 @@
             </tr>
 
             <tr class='tab_bg_2'>
+                <th class='center' style='width: 42px;'><input type='checkbox' id='select_all_national' checked onchange='alternarSelecao("national", this.checked)' title='{{ __("Selecionar todos", "brasilferiados") }}'></th>
                 <th class='center bf-col-date' style='text-align: center !important;'>{{ __('Data', 'brasilferiados') }}</th>
                 <th class='left bf-col-name' style='text-align: left !important;'>{{ __('Nome do Feriado', 'brasilferiados') }}</th>
                 <th class='center bf-col-recurring' style='text-align: center !important;'>{{ __('Recorrente', 'brasilferiados') }}</th>
@@ -64,6 +65,7 @@
                     {% set isPerpetualInt = isPerpetual ? 1 : 0 %}
                     
                     <tr class='tab_bg_1' id='row_nat_{{ idx }}'>
+                        <td class='center'><input type='checkbox' class='holiday-selection national-holiday' data-index='{{ idx }}' checked onchange='atualizarSelecaoNacional({{ idx }}, this.checked)'></td>
                         <td class='center bf-col-date'><strong>{{ dataFormatada }}</strong></td>
                         <td class='left bf-col-name' id='name_nat_{{ idx }}' style='text-align: left;'>{{ f.name }}</td>
                         <td class='center bf-col-recurring' id='rec_nat_{{ idx }}'>{{ textoRecorrente }}</td>
@@ -86,9 +88,10 @@
 <div class='center' style='margin-top: 10px;'>
     <div class='bf-table-wrapper'>
         <table class='tab_cadre_fixe bf-table-responsive {% if isDarkMode %}bf-dark-theme{% endif %}'>
-            <tr><th colspan='4'>{{ __('Feriados Locais', 'brasilferiados') }}</th></tr>
+            <tr>            <th colspan='5'>{{ __('Feriados Locais', 'brasilferiados') }}</th></tr>
             <tr class='tab_bg_2'>
-                <th class='center bf-col-date' style='text-align: center !important;'>{{ __('Data', 'brasilferiados') }}</th>
+            <th class='center' style='width: 42px;'><input type='checkbox' id='select_all_local' checked onchange='alternarSelecao("local", this.checked)' title='{{ __("Selecionar todos", "brasilferiados") }}'></th>
+            <th class='center bf-col-date' style='text-align: center !important;'>{{ __('Data', 'brasilferiados') }}</th>
                 <th class='left bf-col-name' style='text-align: left !important;'>{{ __('Nome do Feriado', 'brasilferiados') }}</th>
                 <th class='center bf-col-recurring' style='text-align: center !important;'>{{ __('Recorrente', 'brasilferiados') }}</th>
                 <th class='center bf-col-actions' style='text-align: center !important;'>{{ __('Ações', 'brasilferiados') }}</th>
@@ -106,6 +109,7 @@
                     {% set is_perpetual = fl.is_perpetual ?? 1 %}
                     
                     <tr class='tab_bg_1'>
+                        <td class='center'><input type='checkbox' class='holiday-selection local-holiday' data-index='{{ fl.id }}' checked onchange='atualizarSelecaoLocal({{ fl.id }}, this.checked)'></td>
                         <td class='center bf-col-date'><strong>{{ dataFormatada }}</strong></td>
                         <td class='left bf-col-name' style='text-align: left;'>{{ fl.nome }}</td>
                         <td class='center bf-col-recurring'>{{ is_perpetual ? __('Sim', 'brasilferiados') : __('Não', 'brasilferiados') }}</td>
@@ -122,7 +126,7 @@
             {% endif %}
             
             <tr class='tab_bg_2'>
-                <td colspan='4' class='center' style='padding: 10px;'>
+                <td colspan='5' class='center' style='padding: 10px;'>
                     <button type='button' class='btn bf-btn bf-btn-success' onclick='abrirModalFeriado(0, "", "", "", 1)'>
                         <i class='fas fa-plus'></i> {{ __('Adicionar Feriado Local', 'brasilferiados') }}
                     </button>
@@ -147,6 +151,7 @@
                     {% endfor %}
                 {% endif %}
                 <div id='hidden_nat_{{ idx }}'>
+                    <input type='hidden' id='selected_nat_{{ idx }}' name='national_holidays[{{ idx }}][selected]' value='1'>
                     <input type='hidden' name='national_holidays[{{ idx }}][date]' value='{{ f.date }}'>
                     <input type='hidden' id='hidden_name_nat_{{ idx }}' name='national_holidays[{{ idx }}][name]' value='{{ f.name }}'>
                     <input type='hidden' id='hidden_rec_nat_{{ idx }}' name='national_holidays[{{ idx }}][is_perpetual]' value='{{ isP }}'>
@@ -157,6 +162,9 @@
         {% if isLoaded %}
             <input type='hidden' name='loaded_year' value='{{ loadedYear }}'>
         {% endif %}
+        {% for fl in feriadosLocais %}
+            <input type='hidden' id='selected_local_{{ fl.id }}' name='local_holidays[{{ fl.id }}][selected]' value='1'>
+        {% endfor %}
     </div>
 
     <div class='center' style='margin-top: 10px;'>
@@ -265,6 +273,38 @@
 </div>
 
 <script>
+window.alternarSelecao = function(tipo, selecionado) {
+    var classe = tipo === 'national' ? '.national-holiday' : '.local-holiday';
+    document.querySelectorAll(classe).forEach(function (checkbox) {
+        checkbox.checked = selecionado;
+        if (tipo === 'national') {
+            atualizarSelecaoNacional(checkbox.dataset.index, selecionado);
+        } else {
+            atualizarSelecaoLocal(checkbox.dataset.index, selecionado);
+        }
+    });
+};
+
+window.atualizarSelecaoLocal = function(id, selecionado) {
+    var hidden = document.getElementById('selected_local_' + id);
+    if (hidden) hidden.value = selecionado ? '1' : '0';
+    var master = document.getElementById('select_all_local');
+    if (master) {
+        var boxes = document.querySelectorAll('.local-holiday');
+        master.checked = boxes.length > 0 && Array.prototype.every.call(boxes, function (box) { return box.checked; });
+    }
+};
+
+window.atualizarSelecaoNacional = function(idx, selecionado) {
+    var hidden = document.getElementById('selected_nat_' + idx);
+    if (hidden) hidden.value = selecionado ? '1' : '0';
+    var master = document.getElementById('select_all_national');
+    if (master) {
+        var boxes = document.querySelectorAll('.national-holiday');
+        master.checked = boxes.length > 0 && Array.prototype.every.call(boxes, function (box) { return box.checked; });
+    }
+};
+
 window.removerFeriadoNacional = function(idx) {
     var row = document.getElementById('row_nat_' + idx);
     if (row) { row.remove(); }

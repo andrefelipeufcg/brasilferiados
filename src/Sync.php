@@ -256,7 +256,7 @@ class Sync extends CommonDBTM {
         return self::fetchFromProvider($year);
     }
 
-    public static function sincronizarFeriados(int $year, ?array $feriadosNacionais = null, bool $isAuto = false, int $manualCalendarId = 0): array {
+    public static function sincronizarFeriados(int $year, ?array $feriadosNacionais = null, bool $isAuto = false, int $manualCalendarId = 0, ?array $feriadosLocaisSelecionados = null): array {
         $resultado = [
             'inseridos' => 0,
             'ignorados' => 0,
@@ -305,7 +305,7 @@ class Sync extends CommonDBTM {
             self::inserirFeriado($data, $nome, $calendarsId, $resultado, $isPerpetual);
         }
 
-        self::sincronizarFeriadosLocais($year, $calendarsId, $resultado, $isAuto);
+        self::sincronizarFeriadosLocais($year, $calendarsId, $resultado, $isAuto, $feriadosLocaisSelecionados);
 
         return $resultado;
     }
@@ -442,10 +442,13 @@ class Sync extends CommonDBTM {
         ]);
     }
 
-    private static function sincronizarFeriadosLocais(int $year, int $calendarsId, array &$resultado, bool $isAuto = false): void {
+    private static function sincronizarFeriadosLocais(int $year, int $calendarsId, array &$resultado, bool $isAuto = false, ?array $selecionados = null): void {
         $feriadosLocais = Local::listarTodos();
 
         foreach ($feriadosLocais as $fl) {
+            if (!$isAuto && $selecionados !== null && (int)($selecionados[$fl['id']]['selected'] ?? 0) !== 1) {
+                continue;
+            }
             $dia          = (int)$fl['dia'];
             $mes          = (int)$fl['mes'];
             $nome         = $fl['nome'];

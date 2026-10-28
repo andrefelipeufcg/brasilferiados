@@ -139,6 +139,7 @@ if (isset($_POST['sync_now'])) {
     $loadedYear = (int)($_POST['loaded_year'] ?? 0);
     $manualCalendarId = (int)($_POST['manual_calendars_id'] ?? 0);
     $nationalHolidays = $_POST['national_holidays'] ?? [];
+    $localHolidays = $_POST['local_holidays'] ?? [];
 
     if ($year < 2001 || $year > 2099) {
         Session::addMessageAfterRedirect(__('Por favor, informe um ano válido entre 2001 e 2099.', 'brasilferiados'), false, ERROR);
@@ -164,7 +165,7 @@ if (isset($_POST['sync_now'])) {
         $nacionais = [];
         if (is_array($nationalHolidays)) {
             foreach ($nationalHolidays as $nh) {
-                if (isset($nh['date']) && isset($nh['name'])) {
+                if (isset($nh['date'], $nh['name']) && (int)($nh['selected'] ?? 1) === 1) {
                     $item = [
                         'date' => $nh['date'],
                         'name' => $nh['name']
@@ -176,7 +177,7 @@ if (isset($_POST['sync_now'])) {
                 }
             }
         }
-        $resultado = Sync::sincronizarFeriados($year, $nacionais, false, $manualCalendarId);
+        $resultado = Sync::sincronizarFeriados($year, $nacionais, false, $manualCalendarId, $localHolidays);
     } else {
         $resultado = Sync::sincronizarFeriados($year, null, false, $manualCalendarId);
     }
