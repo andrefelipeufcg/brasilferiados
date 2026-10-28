@@ -118,6 +118,106 @@
     .bf-dark-theme.tab_cadre_fixe tr.tab_bg_2 {
         background-color: #182335 !important;
     }
+
+    /* Tabelas de dados tabulares responsivas (sobrescreve o display: block do GLPI em dispositivos móveis) */
+    .bf-table-wrapper {
+        width: 700px;
+        max-width: 100%;
+        margin: 0 auto 12px auto;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tab_cadre_fixe.bf-table-responsive,
+    table.bf-table-responsive {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        display: table !important;
+    }
+
+    .tab_cadre_fixe.bf-table-responsive thead,
+    .tab_cadre_fixe.bf-table-responsive tbody,
+    .tab_cadre_fixe.bf-table-responsive tfoot,
+    table.bf-table-responsive thead,
+    table.bf-table-responsive tbody,
+    table.bf-table-responsive tfoot {
+        display: table-row-group !important;
+    }
+
+    .tab_cadre_fixe.bf-table-responsive tr,
+    table.bf-table-responsive tr {
+        display: table-row !important;
+    }
+
+    .tab_cadre_fixe.bf-table-responsive th,
+    .tab_cadre_fixe.bf-table-responsive td,
+    table.bf-table-responsive th,
+    table.bf-table-responsive td {
+        display: table-cell !important;
+        vertical-align: middle !important;
+    }
+
+    .bf-table-responsive .bf-col-date {
+        width: 75px !important;
+        white-space: nowrap !important;
+    }
+
+    .bf-table-responsive .bf-col-recurring {
+        width: 95px !important;
+        white-space: nowrap !important;
+    }
+
+    .bf-table-responsive .bf-col-actions {
+        width: 90px !important;
+        white-space: nowrap !important;
+    }
+
+    .bf-table-responsive .bf-col-name {
+        width: auto !important;
+    }
+
+    @media (max-width: 768px) {
+        .bf-table-responsive th,
+        .bf-table-responsive td {
+            padding: 8px 6px !important;
+            font-size: 0.88rem !important;
+        }
+        .bf-table-responsive .btn-sm {
+            padding: 2px 5px !important;
+            font-size: 0.78rem !important;
+        }
+        .bf-table-responsive .bf-col-date {
+            width: 60px !important;
+        }
+        .bf-table-responsive .bf-col-recurring {
+            width: 75px !important;
+        }
+        .bf-table-responsive .bf-col-actions {
+            width: 75px !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .bf-table-responsive th,
+        .bf-table-responsive td {
+            padding: 6px 4px !important;
+            font-size: 0.82rem !important;
+        }
+        .bf-table-responsive .btn-sm {
+            padding: 2px 4px !important;
+            font-size: 0.75rem !important;
+        }
+        .bf-table-responsive .bf-col-date {
+            width: 55px !important;
+        }
+        .bf-table-responsive .bf-col-recurring {
+            width: 68px !important;
+        }
+        .bf-table-responsive .bf-col-actions {
+            width: 70px !important;
+        }
+    }
 </style>
 
 <script>
