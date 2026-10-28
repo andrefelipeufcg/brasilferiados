@@ -1,0 +1,421 @@
+<div class='center' style='margin-top: 5px;'>
+    <table class='tab_cadre_fixe {% if isDarkMode %}bf-dark-theme{% endif %}' style='width: 700px;'>
+        <tr><th colspan='2'>{{ __('Sincronização Manual', 'brasilferiados') }}</th></tr>
+    </table>
+</div>
+
+<div class='center' style='margin-top: 10px;'>
+    <form method='get' action='{{ form_url }}' style='margin-bottom: 0;'>
+        <input type='hidden' name='load_national' value='1'>
+        <input type='hidden' name='tab' value='manual'>
+
+        <div class='bf-table-wrapper'>
+            <table class='tab_cadre_fixe bf-table-responsive {% if isDarkMode %}bf-dark-theme{% endif %}'>
+            <tr class='tab_bg_2'>
+                <th colspan='5' style='text-align: left; padding: 10px;'>
+                    <div style='display: flex; flex-wrap: wrap; align-items: center; gap: 8px;'>
+                        <span>{{ __('Feriados do ano', 'brasilferiados') }}</span>
+                        <input type='number' name='load_year' id='sync_year_input' value='{{ loadedYear }}' min='2001' max='2099' style='width: 85px;' class='form-control d-inline-block'>
+                        <button type='submit' class='btn bf-btn bf-btn-warning'>{{ __('Carregar Feriados', 'brasilferiados') }}</button>
+                        <span style='font-weight: normal; font-size: 0.85em; opacity: 0.85;'>
+                            <i class='fas fa-plug'></i> {{ __('Provedor', 'brasilferiados') }}: <strong>{{ providerLabel }}</strong>
+                        </span>
+                    </div>
+                </th>
+            </tr>
+
+            <tr class='tab_bg_2'>
+                <th class='center' style='width: 42px;'><input type='checkbox' id='select_all_national' checked onchange='alternarSelecao("national", this.checked)' title='{{ __("Selecionar todos", "brasilferiados") }}'></th>
+                <th class='center bf-col-date' style='text-align: center !important;'>{{ __('Data', 'brasilferiados') }}</th>
+                <th class='left bf-col-name' style='text-align: left !important;'>{{ __('Nome do Feriado', 'brasilferiados') }}</th>
+                <th class='center bf-col-recurring' style='text-align: center !important;'>{{ __('Recorrente', 'brasilferiados') }}</th>
+                <th class='center bf-col-actions' style='text-align: center !important;'>{{ __('Ações', 'brasilferiados') }}</th>
+            </tr>
+            
+            {% if not isLoaded %}
+                <tr class='tab_bg_1'>
+                    <td colspan='4' class='center' style='padding: 20px; color: #888;'>
+                        <i class='fas fa-info-circle'></i> {{ __('Clique em \'Carregar Feriados\' para visualizar, editar ou remover feriados.', 'brasilferiados') }}
+                    </td>
+                </tr>
+            {% elseif apiHolidays is empty %}
+                <tr class='tab_bg_1'>
+                    <td colspan='4' class='center' style='padding: 20px; color: #888;'>
+                        <i class='fas fa-info-circle'></i> {{ __('Nenhum feriado encontrado via %1$s para o ano %2$d.', 'brasilferiados')|format(providerLabel, loadedYear) }}
+                    </td>
+                </tr>
+            {% else %}
+                {% for idx, f in apiHolidays %}
+                    {% set dataOrig = f.date %}
+                    {% set partes = dataOrig|split('-') %}
+                    {% set dataFormatada = (partes|length == 3) ? (partes[2] ~ '/' ~ partes[1]) : dataOrig %}
+                    
+                    {% set isPerpetual = f.is_perpetual ?? null %}
+                    {% if isPerpetual is null %}
+                        {% set feriadosMoveis = ['Carnaval', 'Sexta-feira Santa', 'Páscoa', 'Corpus Christi'] %}
+                        {% set isPerpetual = true %}
+                        {% for movel in feriadosMoveis %}
+                            {% if movel|lower in f.name|lower %}
+                                {% set isPerpetual = false %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    
+                    {% set textoRecorrente = isPerpetual ? __('Sim', 'brasilferiados') : __('Não', 'brasilferiados') %}
+                    {% set isPerpetualInt = isPerpetual ? 1 : 0 %}
+                    
+                    <tr class='tab_bg_1' id='row_nat_{{ idx }}'>
+                        <td class='center'><input type='checkbox' class='holiday-selection national-holiday' data-index='{{ idx }}' checked onchange='atualizarSelecaoNacional({{ idx }}, this.checked)'></td>
+                        <td class='center bf-col-date'><strong>{{ dataFormatada }}</strong></td>
+                        <td class='left bf-col-name' id='name_nat_{{ idx }}' style='text-align: left;'>{{ f.name }}</td>
+                        <td class='center bf-col-recurring' id='rec_nat_{{ idx }}'>{{ textoRecorrente }}</td>
+                        <td class='center bf-col-actions' style='white-space: nowrap;'>
+                            <button type="button" class="btn btn-sm btn-outline-primary" title="Editar" style="margin-right: 5px;" onclick="abrirModalFeriadoNacional({{ idx }}, '{{ dataFormatada }}', {{ f.name|json_encode|escape('html_attr') }}, {{ isPerpetualInt }})">
+                                <i class='fas fa-edit'></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir" onclick="removerFeriadoNacional({{ idx }})">
+                                <i class='fas fa-trash-alt'></i>
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </table>
+        </div>
+    </form>
+</div>
+
+<div class='center' style='margin-top: 10px;'>
+    <div class='bf-table-wrapper'>
+        <table class='tab_cadre_fixe bf-table-responsive {% if isDarkMode %}bf-dark-theme{% endif %}'>
+            <tr>            <th colspan='5'>{{ __('Feriados Locais', 'brasilferiados') }}</th></tr>
+            <tr class='tab_bg_2'>
+            <th class='center' style='width: 42px;'><input type='checkbox' id='select_all_local' checked onchange='alternarSelecao("local", this.checked)' title='{{ __("Selecionar todos", "brasilferiados") }}'></th>
+            <th class='center bf-col-date' style='text-align: center !important;'>{{ __('Data', 'brasilferiados') }}</th>
+                <th class='left bf-col-name' style='text-align: left !important;'>{{ __('Nome do Feriado', 'brasilferiados') }}</th>
+                <th class='center bf-col-recurring' style='text-align: center !important;'>{{ __('Recorrente', 'brasilferiados') }}</th>
+                <th class='center bf-col-actions' style='text-align: center !important;'>{{ __('Ações', 'brasilferiados') }}</th>
+            </tr>
+            
+            {% if feriadosLocais is empty %}
+                <tr class='tab_bg_1'>
+                    <td colspan='4' class='center' style='padding: 20px; color: #888;'>
+                        <i class='fas fa-info-circle'></i> {{ __('Nenhum feriado local cadastrado.', 'brasilferiados') }}
+                    </td>
+                </tr>
+            {% else %}
+                {% for fl in feriadosLocais %}
+                    {% set dataFormatada = '%02d/%02d'|format(fl.dia, fl.mes) %}
+                    {% set is_perpetual = fl.is_perpetual ?? 1 %}
+                    
+                    <tr class='tab_bg_1'>
+                        <td class='center'><input type='checkbox' class='holiday-selection local-holiday' data-index='{{ fl.id }}' checked onchange='atualizarSelecaoLocal({{ fl.id }}, this.checked)'></td>
+                        <td class='center bf-col-date'><strong>{{ dataFormatada }}</strong></td>
+                        <td class='left bf-col-name' style='text-align: left;'>{{ fl.nome }}</td>
+                        <td class='center bf-col-recurring'>{{ is_perpetual ? __('Sim', 'brasilferiados') : __('Não', 'brasilferiados') }}</td>
+                        <td class='center bf-col-actions' style='white-space: nowrap;'>
+                            <button type="button" class="btn btn-sm btn-outline-primary" title="Editar" style="margin-right: 5px;" onclick="abrirModalFeriado({{ fl.id }}, {{ fl.dia }}, {{ fl.mes }}, {{ fl.nome|json_encode|escape('html_attr') }}, {{ is_perpetual }})">
+                                <i class='fas fa-edit'></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir" onclick="excluirFeriadoLocal({{ fl.id }}, {{ fl.nome|json_encode|escape('html_attr') }})">
+                                <i class='fas fa-trash-alt'></i>
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+            
+            <tr class='tab_bg_2'>
+                <td colspan='5' class='center' style='padding: 10px;'>
+                    <button type='button' class='btn bf-btn bf-btn-success' onclick='abrirModalFeriado(0, "", "", "", 1)'>
+                        <i class='fas fa-plus'></i> {{ __('Adicionar Feriado Local', 'brasilferiados') }}
+                    </button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<form method='post' action='{{ form_url }}' id='form_sync_manual'>
+    <input type='hidden' name='_glpi_csrf_token' value='{{ csrf_token(true) }}'>
+    <div id='national_holidays_container' style='display: none;'>
+        {% if isLoaded and apiHolidays is not empty %}
+            {% for idx, f in apiHolidays %}
+                {% set isP = f.is_perpetual ?? 1 %}
+                {% if f.is_perpetual is null %}
+                    {% set feriadosMoveis = ['Carnaval', 'Sexta-feira Santa', 'Páscoa', 'Corpus Christi'] %}
+                    {% for movel in feriadosMoveis %}
+                        {% if movel|lower in f.name|lower %}
+                            {% set isP = 0 %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                <div id='hidden_nat_{{ idx }}'>
+                    <input type='hidden' id='selected_nat_{{ idx }}' name='national_holidays[{{ idx }}][selected]' value='1'>
+                    <input type='hidden' name='national_holidays[{{ idx }}][date]' value='{{ f.date }}'>
+                    <input type='hidden' id='hidden_name_nat_{{ idx }}' name='national_holidays[{{ idx }}][name]' value='{{ f.name }}'>
+                    <input type='hidden' id='hidden_rec_nat_{{ idx }}' name='national_holidays[{{ idx }}][is_perpetual]' value='{{ isP }}'>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% if isLoaded %}
+            <input type='hidden' name='loaded_year' value='{{ loadedYear }}'>
+        {% endif %}
+        {% for fl in feriadosLocais %}
+            <input type='hidden' id='selected_local_{{ fl.id }}' name='local_holidays[{{ fl.id }}][selected]' value='1'>
+        {% endfor %}
+    </div>
+
+    <div class='center' style='margin-top: 10px;'>
+        <table class='tab_cadre_fixe {% if isDarkMode %}bf-dark-theme{% endif %}' style='width: 700px; margin-bottom: 10px;'>
+            <tr class='tab_bg_1'>
+                <td style='width: 40%; vertical-align: top; padding-top: 15px;'>{{ __('Calendário Principal de Atendimento', 'brasilferiados') }} <span style='color:red;'>*</span></td>
+                <td class='bf-calendar-select'>
+                    {{ calendarDropdown|raw }}
+                    <br><small class='text-muted'>{{ __('Os feriados serão vinculados a este calendário durante a Sincronização Manual.', 'brasilferiados') }}</small>
+                </td>
+            </tr>
+        </table>
+
+        <input type='hidden' name='sync_year' id='hidden_sync_year' value='{{ loadedYear }}'>
+        <button type='button' class='btn bf-btn bf-btn-primary' style='margin-bottom: 50px;' onclick='validarSincronizacao()'>{{ __('Sincronizar Agora', 'brasilferiados') }}</button>
+        <input type='hidden' name='manual_calendars_id' id='hidden_manual_cal' value='0'>
+        <input type='submit' name='sync_now' id='real_sync_btn' style='display: none;'>
+    </div>
+</form>
+
+<form method='post' action='{{ local_form_url }}' id='form_delete_local' style='display:none;'>
+    <input type='hidden' name='_glpi_csrf_token' value='{{ csrf_token(true) }}'>
+    <input type='hidden' name='id' id='delete_local_id' value='0'>
+    <input type='hidden' name='delete_local' value='1'>
+</form>
+
+<!-- Modal Feriado Local (Adicionar/Editar) -->
+<div class="modal fade" id="modalFeriadoLocal" tabindex="-1" aria-labelledby="modalFeriadoLocalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ local_form_url }}">
+          <input type='hidden' name='_glpi_csrf_token' value='{{ csrf_token(true) }}'>
+          <input type="hidden" name="id" id="modal_fl_id" value="0">
+          <input type="hidden" name="save_local" value="1">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalFeriadoLocalLabel">{{ __("Feriado Local", "brasilferiados") }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">{{ __("Dia (1-31)", "brasilferiados") }}</label>
+                    <input type="number" name="dia" id="modal_fl_dia" class="form-control" min="1" max="31" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ __("Mês", "brasilferiados") }}</label>
+                    <select name="mes" id="modal_fl_mes" class="form-select" required>
+                        <option value="">{{ __("Selecione o mês...", "brasilferiados") }}</option>
+                        {% set meses = [__('Janeiro', 'brasilferiados'), __('Fevereiro', 'brasilferiados'), __('Março', 'brasilferiados'), __('Abril', 'brasilferiados'), __('Maio', 'brasilferiados'), __('Junho', 'brasilferiados'), __('Julho', 'brasilferiados'), __('Agosto', 'brasilferiados'), __('Setembro', 'brasilferiados'), __('Outubro', 'brasilferiados'), __('Novembro', 'brasilferiados'), __('Dezembro', 'brasilferiados')] %}
+                        {% for nomeMes in meses %}
+                            <option value="{{ loop.index }}">{{ nomeMes }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ __("Nome do Feriado (ex: Padroeira da Cidade)", "brasilferiados") }}</label>
+                    <input type="text" name="nome" id="modal_fl_nome" class="form-control" required>
+                </div>
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" value="1" name="is_perpetual" id="modal_fl_perpetual" checked>
+                    <label class="form-check-label" for="modal_fl_perpetual">
+                        {{ __("Repetir todo ano", "brasilferiados") }}
+                    </label>
+                </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn bf-btn bf-btn-secondary" data-bs-dismiss="modal">{{ __("Cancelar", "brasilferiados") }}</button>
+            <button type="submit" class="btn bf-btn bf-btn-primary">{{ __("Salvar", "brasilferiados") }}</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Edição Visual Feriado Nacional -->
+<div class="modal fade" id="modalFeriadoNacional" tabindex="-1" aria-labelledby="modalFeriadoNacionalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+          <input type="hidden" id="modal_nat_idx" value="">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalFeriadoNacionalLabel">{{ __("Ajustar Feriado Nacional", "brasilferiados") }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">{{ __("Data", "brasilferiados") }}</label>
+                    <input type="text" id="modal_nat_data" class="form-control" disabled>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ __("Nome do Feriado", "brasilferiados") }}</label>
+                    <input type="text" id="modal_nat_nome" class="form-control" required>
+                    <small class="text-muted">{{ __("Altere o nome se necessário (ex: adicionar \" - Ponto Facultativo\").", "brasilferiados") }}</small>
+                </div>
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="modal_nat_perpetual">
+                    <label class="form-check-label" for="modal_nat_perpetual">
+                        {{ __("Recorrente (repetir todo ano nesta data)", "brasilferiados") }}
+                    </label>
+                </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn bf-btn bf-btn-secondary" data-bs-dismiss="modal">{{ __("Cancelar", "brasilferiados") }}</button>
+            <button type="button" class="btn bf-btn bf-btn-primary" onclick="salvarEdicaoNacional()">{{ __("Confirmar Edição", "brasilferiados") }}</button>
+          </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.alternarSelecao = function(tipo, selecionado) {
+    var classe = tipo === 'national' ? '.national-holiday' : '.local-holiday';
+    document.querySelectorAll(classe).forEach(function (checkbox) {
+        checkbox.checked = selecionado;
+        if (tipo === 'national') {
+            atualizarSelecaoNacional(checkbox.dataset.index, selecionado);
+        } else {
+            atualizarSelecaoLocal(checkbox.dataset.index, selecionado);
+        }
+    });
+};
+
+window.atualizarSelecaoLocal = function(id, selecionado) {
+    var hidden = document.getElementById('selected_local_' + id);
+    if (hidden) hidden.value = selecionado ? '1' : '0';
+    var master = document.getElementById('select_all_local');
+    if (master) {
+        var boxes = document.querySelectorAll('.local-holiday');
+        master.checked = boxes.length > 0 && Array.prototype.every.call(boxes, function (box) { return box.checked; });
+    }
+};
+
+window.atualizarSelecaoNacional = function(idx, selecionado) {
+    var hidden = document.getElementById('selected_nat_' + idx);
+    if (hidden) hidden.value = selecionado ? '1' : '0';
+    var master = document.getElementById('select_all_national');
+    if (master) {
+        var boxes = document.querySelectorAll('.national-holiday');
+        master.checked = boxes.length > 0 && Array.prototype.every.call(boxes, function (box) { return box.checked; });
+    }
+};
+
+window.removerFeriadoNacional = function(idx) {
+    var row = document.getElementById('row_nat_' + idx);
+    if (row) { row.remove(); }
+    
+    var hiddenDiv = document.getElementById('hidden_nat_' + idx);
+    if (hiddenDiv) { hiddenDiv.remove(); }
+};
+
+window.excluirFeriadoLocal = function(id, nome) {
+    var msg = {{ __('Tem certeza que deseja excluir o feriado local', 'brasilferiados')|json_encode|raw }};
+    if (confirm(msg + " '" + nome + "'?")) {
+        document.getElementById('delete_local_id').value = id;
+        document.getElementById('form_delete_local').submit();
+    }
+};
+
+window.validarSincronizacao = function() {
+    var loadedYear = {{ isLoaded ? loadedYear : 0 }};
+    var syncYearInput = document.getElementById('sync_year_input').value;
+    document.getElementById('hidden_sync_year').value = syncYearInput;
+    var isActive = {{ isActive ? 1 : 0 }};
+    
+    if (isActive === 0) {
+        if (loadedYear === 0) {
+            alert({{ __('Você deve Carregar os Feriados do ano desejado antes de sincronizar.', 'brasilferiados')|json_encode|raw }});
+            return false;
+        }
+        
+        if (parseInt(syncYearInput) !== loadedYear) {
+            alert({{ __('Atenção: O ano digitado na Sincronização é diferente do ano carregado no Grid.\n\nPor favor, atualize o ano no campo Feriados do ano, clique em Carregar Feriados e tente novamente.', 'brasilferiados')|json_encode|raw }});
+            return false;
+        }
+    }
+
+    var calDropdown = document.querySelector("select[name='calendars_id']");
+    var currentCalId = 0;
+    if (calDropdown && calDropdown.value) {
+        currentCalId = parseInt(calDropdown.value);
+    }
+    
+    if (isNaN(currentCalId) || currentCalId === 0) {
+        alert({{ __('O Calendário Principal de Atendimento é obrigatório para a sincronização manual.\n\nPor favor, selecione-o no menu dropdown e tente novamente.', 'brasilferiados')|json_encode|raw }});
+        return false;
+    }
+    document.getElementById('hidden_manual_cal').value = currentCalId;
+    
+    if (confirm({{ __('Prosseguir com a Sincronização Manual?', 'brasilferiados')|json_encode|raw }})) {
+        var hiddenSubmit = document.createElement('input');
+        hiddenSubmit.type = 'hidden';
+        hiddenSubmit.name = 'sync_now';
+        hiddenSubmit.value = '1';
+        var form = document.getElementById('form_sync_manual');
+        form.appendChild(hiddenSubmit);
+        form.submit();
+    }
+};
+
+window.abrirModalFeriado = function(id, dia, mes, nome, isPerpetual) {
+    document.getElementById('modal_fl_id').value = id;
+    document.getElementById('modal_fl_dia').value = dia;
+    document.getElementById('modal_fl_mes').value = mes;
+    document.getElementById('modal_fl_nome').value = nome;
+    document.getElementById('modal_fl_perpetual').checked = (isPerpetual == 1);
+    
+    document.getElementById('modalFeriadoLocalLabel').innerText = (id > 0) ? {{ __("Editar Feriado Local", "brasilferiados")|json_encode|raw }} : {{ __("Novo Feriado Local", "brasilferiados")|json_encode|raw }};
+    
+    var modalEl = document.getElementById('modalFeriadoLocal');
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    } else {
+        $(modalEl).modal('show');
+    }
+};
+
+window.abrirModalFeriadoNacional = function(idx, dataFormatada, nomeAtual, isPerpetual) {
+    document.getElementById('modal_nat_idx').value = idx;
+    document.getElementById('modal_nat_data').value = dataFormatada;
+    document.getElementById('modal_nat_nome').value = nomeAtual;
+    document.getElementById('modal_nat_perpetual').checked = (isPerpetual == 1);
+    
+    var modalEl = document.getElementById('modalFeriadoNacional');
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    } else {
+        $(modalEl).modal('show');
+    }
+};
+
+window.salvarEdicaoNacional = function() {
+    var idx = document.getElementById('modal_nat_idx').value;
+    var novoNome = document.getElementById('modal_nat_nome').value;
+    var isPerpetual = document.getElementById('modal_nat_perpetual').checked ? 1 : 0;
+    
+    document.getElementById('name_nat_' + idx).innerText = novoNome;
+    document.getElementById('hidden_name_nat_' + idx).value = novoNome;
+    
+    var recText = (isPerpetual == 1) ? {{ __("Sim", "brasilferiados")|json_encode|raw }} : {{ __("Não", "brasilferiados")|json_encode|raw }};
+    document.getElementById('rec_nat_' + idx).innerText = recText;
+    document.getElementById('hidden_rec_nat_' + idx).value = isPerpetual;
+    
+    var modalEl = document.getElementById('modalFeriadoNacional');
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        var modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+            modal.hide();
+        }
+    } else {
+        $(modalEl).modal('hide');
+    }
+};
+</script>
+

@@ -1,0 +1,29 @@
+<form method='post' action='{{ form_url }}' id='form_config_automatic'>
+    <input type='hidden' name='_glpi_csrf_token' value='{{ csrf_token(true) }}'>
+    <input type='hidden' name='update_config' value='1'>
+    <input type='hidden' name='update_automatic' value='1'>
+
+    <div class='center' style='margin-top: 5px;'>
+        <table class='tab_cadre_fixe {% if isDarkMode %}bf-dark-theme{% endif %}' style='width: 700px;'>
+            <tr><th colspan='2'>{{ __('Sincronização Automática', 'brasilferiados') }}</th></tr>
+            <tr class='tab_bg_1'>
+                <td style='width: 40%; vertical-align: top; padding-top: 15px;'>{{ __('Sincronização automática de Ano Novo', 'brasilferiados') }}</td>
+                <td>
+                    <label class="form-check form-switch" style="cursor: pointer;">
+                        <input type="hidden" name="is_active" value="0">
+                        <input class="form-check-input" type="checkbox" name="is_active" id="is_active_chk" value="1" {% if isActive %}checked='checked'{% endif %}>
+                        <span class="form-check-label">{{ __('Executar sincronização automaticamente em 1º de Janeiro do ano corrente via GLPI Cron', 'brasilferiados') }}</span>
+                    </label>
+                    <small class='text-muted d-block mt-1'>
+                        {{ __('Exemplo: no dia 1º de janeiro de 2030, será criado um calendário na entidade raiz do GLPI com o nome "Calendário 2030". Esse calendário terá os feriados obtidos via <strong>%1$s</strong> e os feriados locais recorrentes cadastrados pelo usuário.', 'brasilferiados')|format(providerLabel)|raw }}
+                    </small>
+                </td>
+            </tr>
+            <tr class='tab_bg_2'>
+                <td colspan='2' class='center' style='padding: 10px;'>
+                    <button type='submit' class='btn bf-btn bf-btn-warning'>{{ __('Salvar configurações de sincronização automática', 'brasilferiados') }}</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</form>

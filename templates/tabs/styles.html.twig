@@ -1,0 +1,258 @@
+<style>
+    /* Oculta barra de navegação/ID de item, botão de buscas salvas e linhas residuais */
+    .navigationheader,
+    .saved-searches,
+    .card-header.main-header,
+    h3.navigationheader-title,
+    hr,
+    hr.bf-divider {
+        display: none !important;
+    }
+
+    /* Elimina espaçamentos e margens excessivas entre as abas e painéis no GLPI */
+    body .tab-content > .tab-pane,
+    body .tab-pane {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    form#form_config_provider,
+    form#form_config_automatic,
+    form#form_config {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    .alltab {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .bf-btn { font-weight: 600; border: 1px solid transparent; }
+    .bf-btn:hover, .bf-btn:focus { filter: brightness(1.1); }
+    .bf-btn-primary   { background: #206bc4; color: #fff; border-color: #1a5aa6; }
+    .bf-btn-secondary { background: #e9ecef; color: #1f2937; border-color: #ced4da; }
+    .bf-btn-success   { background: #2b8a3e; color: #fff; border-color: #237032; }
+    .bf-btn-warning   { background: #f59f00; color: #1f2937; border-color: #d98a00; }
+    [data-bs-theme='dark'] .bf-btn-primary   { background: #4299e1; color: #0b1220; border-color: #63b3ed; }
+    [data-bs-theme='dark'] .bf-btn-secondary { background: #3a4a63; color: #e6edf7; border-color: #52627d; }
+    [data-bs-theme='dark'] .bf-btn-success   { background: #3ccf6a; color: #08210f; border-color: #5bdc82; }
+    [data-bs-theme='dark'] .bf-btn-warning   { background: #fcc419; color: #1f1a00; border-color: #ffd43b; }
+
+    .bf-alert-info { background: rgba(23, 138, 187, 0.1); border-left: 4px solid #178abb; padding: 12px 15px; border-radius: 4px; color: inherit; }
+    .bf-alert-info i { color: #178abb; margin-right: 5px; }
+    .bf-calendar-select .select2-selection--single { max-width: none !important; }
+
+    /* MODO CLARO (padrão): cabeçalho em cinza claro e fundo limpo */
+    .tab_cadre_fixe {
+        width: 700px !important;
+        max-width: 100% !important;
+        margin: 0 auto 12px auto !important;
+        text-align: left !important;
+        border-spacing: 0 !important;
+        border-collapse: separate !important;
+        border: 1px solid #dcdfe6 !important;
+        border-radius: 4px !important;
+        overflow: hidden !important;
+        background-color: #ffffff !important;
+        color: #1f2937 !important;
+    }
+    .tab_cadre_fixe th {
+        background-color: #e9ecef !important;
+        color: #1f2937 !important;
+        font-size: 1.1em !important;
+        font-weight: bold !important;
+        padding: 9px 12px !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        text-align: left;
+        border-bottom: 1px solid #dcdfe6 !important;
+    }
+    .tab_cadre_fixe th.center,
+    .tab_cadre_fixe th.text-center {
+        text-align: center !important;
+    }
+    .tab_cadre_fixe th.left,
+    .tab_cadre_fixe th.text-left {
+        text-align: left !important;
+    }
+    .tab_cadre_fixe td.center,
+    .tab_cadre_fixe td.text-center {
+        text-align: center !important;
+    }
+    .tab_cadre_fixe td.left,
+    .tab_cadre_fixe td.text-left {
+        text-align: left !important;
+    }
+    .tab_cadre_fixe td {
+        padding: 7px 12px !important;
+        border-bottom: 1px solid #e9ecef !important;
+        background-color: transparent !important;
+        color: inherit !important;
+    }
+    .tab_cadre_fixe tr:last-child td {
+        border-bottom: 0 !important;
+    }
+    .tab_cadre_fixe tr.tab_bg_2 {
+        background-color: #f1f3f5 !important;
+    }
+
+    /* MODO ESCURO (ativado quando .bf-dark-theme estiver presente) */
+    .bf-dark-theme.tab_cadre_fixe {
+        border-color: #2b384e !important;
+        background-color: #172131 !important;
+        color: #e6edf7 !important;
+    }
+    .bf-dark-theme.tab_cadre_fixe th {
+        background-color: #202d42 !important;
+        color: #e6edf7 !important;
+        border-bottom: 1px solid #2b384e !important;
+    }
+    .bf-dark-theme.tab_cadre_fixe td {
+        border-bottom: 1px solid #243044 !important;
+        background-color: transparent !important;
+        color: #d1d5db !important;
+    }
+    .bf-dark-theme.tab_cadre_fixe tr.tab_bg_2 {
+        background-color: #182335 !important;
+    }
+
+    /* Tabelas de dados tabulares responsivas (sobrescreve o display: block do GLPI em dispositivos móveis) */
+    .bf-table-wrapper {
+        width: 700px;
+        max-width: 100%;
+        margin: 0 auto 12px auto;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tab_cadre_fixe.bf-table-responsive,
+    table.bf-table-responsive {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        display: table !important;
+    }
+
+    .tab_cadre_fixe.bf-table-responsive thead,
+    .tab_cadre_fixe.bf-table-responsive tbody,
+    .tab_cadre_fixe.bf-table-responsive tfoot,
+    table.bf-table-responsive thead,
+    table.bf-table-responsive tbody,
+    table.bf-table-responsive tfoot {
+        display: table-row-group !important;
+    }
+
+    .tab_cadre_fixe.bf-table-responsive tr,
+    table.bf-table-responsive tr {
+        display: table-row !important;
+    }
+
+    .tab_cadre_fixe.bf-table-responsive th,
+    .tab_cadre_fixe.bf-table-responsive td,
+    table.bf-table-responsive th,
+    table.bf-table-responsive td {
+        display: table-cell !important;
+        vertical-align: middle !important;
+    }
+
+    .bf-table-responsive .bf-col-date {
+        width: 75px !important;
+        white-space: nowrap !important;
+    }
+
+    .bf-table-responsive .bf-col-recurring {
+        width: 95px !important;
+        white-space: nowrap !important;
+    }
+
+    .bf-table-responsive .bf-col-actions {
+        width: 90px !important;
+        white-space: nowrap !important;
+    }
+
+    .bf-table-responsive .bf-col-name {
+        width: auto !important;
+    }
+
+    @media (max-width: 768px) {
+        .bf-table-responsive th,
+        .bf-table-responsive td {
+            padding: 8px 6px !important;
+            font-size: 0.88rem !important;
+        }
+        .bf-table-responsive .btn-sm {
+            padding: 2px 5px !important;
+            font-size: 0.78rem !important;
+        }
+        .bf-table-responsive .bf-col-date {
+            width: 60px !important;
+        }
+        .bf-table-responsive .bf-col-recurring {
+            width: 75px !important;
+        }
+        .bf-table-responsive .bf-col-actions {
+            width: 75px !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .bf-table-responsive th,
+        .bf-table-responsive td {
+            padding: 6px 4px !important;
+            font-size: 0.82rem !important;
+        }
+        .bf-table-responsive .btn-sm {
+            padding: 2px 4px !important;
+            font-size: 0.75rem !important;
+        }
+        .bf-table-responsive .bf-col-date {
+            width: 55px !important;
+        }
+        .bf-table-responsive .bf-col-recurring {
+            width: 68px !important;
+        }
+        .bf-table-responsive .bf-col-actions {
+            width: 70px !important;
+        }
+    }
+</style>
+
+<script>
+(function() {
+    function updateTheme() {
+        var isDark = false;
+        try {
+            var isDarkVar = getComputedStyle(document.documentElement).getPropertyValue('--is-dark').trim();
+            if (isDarkVar === 'true') {
+                isDark = true;
+            } else if (isDarkVar === 'false') {
+                isDark = false;
+            } else {
+                var bg = window.getComputedStyle(document.body).backgroundColor;
+                var match = bg.match(/\d+/g);
+                if (match && match.length >= 3) {
+                    var brightness = (parseInt(match[0]) * 299 + parseInt(match[1]) * 587 + parseInt(match[2]) * 114) / 1000;
+                    if (brightness < 128) {
+                        isDark = true;
+                    }
+                }
+            }
+        } catch(e) {}
+
+        var tables = document.querySelectorAll('.tab_cadre_fixe');
+        for (var i = 0; i < tables.length; i++) {
+            if (isDark) {
+                tables[i].classList.add('bf-dark-theme');
+            } else {
+                tables[i].classList.remove('bf-dark-theme');
+            }
+        }
+    }
+    updateTheme();
+    setTimeout(updateTheme, 50);
+    setTimeout(updateTheme, 200);
+})();
+</script>

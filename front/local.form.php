@@ -12,30 +12,31 @@ if (!file_exists($inc)) { $inc = ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/../inc/in
 include $inc;
 
 use GlpiPlugin\Brasilferiados\Local;
+use GlpiPlugin\Brasilferiados\Sync;
 
 Session::checkRight("config", UPDATE);
 
 $feriadoLocal = new Local();
+$redirect_url = \Plugin::getPhpDir('brasilferiados', false) . '/front/config.form.php?tab=manual';
 
 // -----------------------------------------------------------------------
 // POST: Excluir feriado local
 // -----------------------------------------------------------------------
 if (isset($_POST['delete_local'])) {
-    // inc/includes.php já valida e consome o token CSRF.
     $id = (int)($_POST['id'] ?? 0);
     if ($id > 0 && $feriadoLocal->getFromDB($id)) {
         $feriadoLocal->delete(['id' => $id]);
         Session::addMessageAfterRedirect(__('Feriado local excluído com sucesso.', 'brasilferiados'), true, INFO);
     }
+    Session::setActiveTab(Sync::class, Sync::class . '$3');
     global $CFG_GLPI;
-    Html::redirect(\Plugin::getPhpDir('brasilferiados', false) . '/front/config.form.php');
+    Html::redirect($redirect_url);
 }
 
 // -----------------------------------------------------------------------
 // POST: Salvar (inserir ou atualizar)
 // -----------------------------------------------------------------------
 if (isset($_POST['save_local'])) {
-    // inc/includes.php já valida e consome o token CSRF.
     $id   = (int)($_POST['id'] ?? 0);
     $dia  = (int)($_POST['dia'] ?? 0);
     $mes  = (int)($_POST['mes'] ?? 0);
@@ -62,8 +63,9 @@ if (isset($_POST['save_local'])) {
         foreach ($erros as $e) {
             Session::addMessageAfterRedirect($e, false, ERROR);
         }
+        Session::setActiveTab(Sync::class, Sync::class . '$3');
         global $CFG_GLPI;
-        Html::redirect(\Plugin::getPhpDir('brasilferiados', false) . '/front/config.form.php');
+        Html::redirect($redirect_url);
     }
 
     if ($id > 0) {
@@ -85,6 +87,7 @@ if (isset($_POST['save_local'])) {
         Session::addMessageAfterRedirect(__('Feriado local adicionado com sucesso.', 'brasilferiados'), true, INFO);
     }
 
+    Session::setActiveTab(Sync::class, Sync::class . '$3');
     global $CFG_GLPI;
-    Html::redirect(\Plugin::getPhpDir('brasilferiados', false) . '/front/config.form.php');
+    Html::redirect($redirect_url);
 }

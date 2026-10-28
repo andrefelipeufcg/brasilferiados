@@ -1,0 +1,209 @@
+<form method='post' action='{{ form_url }}' id='form_config_provider'>
+    <input type='hidden' name='_glpi_csrf_token' value='{{ csrf_token(true) }}'>
+    <input type='hidden' name='update_config' value='1'>
+    <input type='hidden' name='update_provider' value='1'>
+
+    <div class='center' style='margin-top: 5px;'>
+        <table class='tab_cadre_fixe {% if isDarkMode %}bf-dark-theme{% endif %}' style='width: 700px;'>
+            <tr><th colspan='2'>{{ __('Provedor', 'brasilferiados') }}</th></tr>
+            <tr class='tab_bg_1'>
+                <td style='width: 40%; vertical-align: top; padding-top: 15px;'>{{ __('API de Feriados / Importador', 'brasilferiados') }}</td>
+                <td>
+                    <select name='api_provider' id='api_provider_select' class='form-select' style='width: 100%; display: inline-block;'>
+                        {% for key, label in providerList %}
+                            <option value='{{ key }}' {% if key == apiProvider %}selected='selected'{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <br><small class='text-muted'>{{ __('Selecione API / Importador utilizado para buscar feriados.', 'brasilferiados') }}</small>
+                </td>
+            </tr>
+
+            {% for key, fields in allProviderFields %}
+                {% set displayStyle = (key == apiProvider) ? '' : 'style="display: none;"' %}
+                
+                {% for field in fields %}
+                    <tr class='tab_bg_1 provider-field-{{ key }}' {{ displayStyle|raw }}>
+                        {% if field.type == 'info' %}
+                            <td colspan='2' style='padding: 10px;'>
+                                <div class='bf-alert-info'>
+                                    <i class='fas fa-info-circle'></i><span>{{ field.content|raw }}</span>
+                                </div>
+                            </td>
+                        {% else %}
+                            <td style='width: 40%; vertical-align: top; padding-top: 15px;'>
+                                {{ field.label|raw }} {% if field.required %} <span style='color:red;'>*</span> {% endif %}
+                            </td>
+                            <td>
+                                {% set fieldName = field.name %}
+                                {% set val = '' %}
+                                {% if fieldName == 'api_token' %}{% set val = apiToken %}{% endif %}
+                                {% if fieldName == 'api_uf' %}{% set val = apiUf %}{% endif %}
+                                {% if fieldName == 'api_cidade_ibge' %}{% set val = apiCidadeIbge %}{% endif %}
+                                {% if fieldName == 'gov_federal_text' %}{% set val = govFederalText %}{% endif %}
+                                
+                                {% set cssId = field.css_class|default(fieldName ~ '_input') %}
+                                {% if fieldName == 'api_uf' %}{% set cssId = 'api_uf_select' %}{% endif %}
+                                
+                                {% if field.type == 'text' %}
+                                    <input type='text' name='{{ fieldName }}' id='{{ cssId }}' value='{{ val }}' class='form-control' style='width: 100%;' placeholder='{{ field.placeholder|default("") }}'>
+                                {% elseif field.type == 'textarea' %}
+                                    {% set height = field.height|default('150px') %}
+                                    <textarea name='{{ fieldName }}' id='{{ cssId }}' class='form-control' style='width: 100%; height: {{ height }};' placeholder='{{ field.placeholder|default("") }}'>{{ val }}</textarea>
+                                {% elseif field.type == 'select' %}
+                                    <select name='{{ fieldName }}' id='{{ cssId }}' class='form-select' style='width: auto; display: inline-block; min-width: 200px;'>
+                                        {% if field.empty_option %}
+                                            {% if fieldName == 'api_cidade_ibge' and val != '' %}
+                                                <option value='{{ val }}' selected='selected'>Carregando... (IBGE: {{ val }})</option>
+                                            {% else %}
+                                                <option value=''>{{ field.empty_option }}</option>
+                                            {% endif %}
+                                        {% endif %}
+                                        
+                                        {% if field.options %}
+                                            {% for optVal, optLabel in field.options %}
+                                                <option value='{{ optVal }}' {% if optVal == val %}selected='selected'{% endif %}>{{ optVal ~ ' — ' ~ optLabel }}</option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                {% endif %}
+                                
+                                {% if field.help_text %}
+                                    <br><small class='text-muted'>{{ field.help_text|raw }}</small>
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            {% endfor %}
+            
+            <tr class='tab_bg_2'>
+                <td colspan='2' class='center' style='padding: 10px;'>
+                    <button type='submit' class='btn bf-btn bf-btn-warning'>{{ __('Salvar configurações de provedor', 'brasilferiados') }}</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</form>
+
+<script>
+(function() {
+    var providerSelect = document.getElementById('api_provider_select');
+    if (!providerSelect) return;
+
+    function toggleProviderFields() {
+        var provider = providerSelect.value;
+        var allProviderFields = document.querySelectorAll('[class*="provider-field-"]');
+        
+        for (var i = 0; i < allProviderFields.length; i++) {
+            allProviderFields[i].style.display = 'none';
+        }
+        
+        var activeFields = document.querySelectorAll('.provider-field-' + provider);
+        for (var j = 0; j < activeFields.length; j++) {
+            activeFields[j].style.display = '';
+            activeFields[j].style.opacity = '0';
+            activeFields[j].style.transition = 'opacity 0.3s ease-in';
+            setTimeout((function(el) {
+                return function() { el.style.opacity = '1'; };
+            })(activeFields[j]), 50);
+        }
+    }
+
+    providerSelect.addEventListener('change', toggleProviderFields);
+    toggleProviderFields();
+})();
+
+(function() {
+    var ufSelect = document.getElementById('api_uf_select');
+    var cidadeSelect = document.getElementById('api_cidade_ibge_select') || document.getElementById('api_cidade_select');
+    var savedIbge = {{ apiCidadeIbge|json_encode|raw }};
+    var savedUf = {{ apiUf|json_encode|raw }};
+
+    if (!ufSelect || !cidadeSelect) return;
+
+    function carregarCidades(uf, preSelectIbge) {
+        if (!uf) {
+            cidadeSelect.innerHTML = '<option value="">' + {{ __("Selecione o estado primeiro...", "brasilferiados")|json_encode|raw }} + '</option>';
+            return;
+        }
+
+        cidadeSelect.innerHTML = '<option value="">' + {{ __("Carregando cidades...", "brasilferiados")|json_encode|raw }} + '</option>';
+        cidadeSelect.disabled = true;
+
+        var url = 'https://servicodados.ibge.gov.br/api/v1/localidades/estados/' + uf + '/municipios?orderBy=nome';
+
+        var capitais = {
+            'AC': 'Rio Branco', 'AL': 'Maceió', 'AP': 'Macapá', 'AM': 'Manaus',
+            'BA': 'Salvador', 'CE': 'Fortaleza', 'DF': 'Brasília', 'ES': 'Vitória',
+            'GO': 'Goiânia', 'MA': 'São Luís', 'MT': 'Cuiabá', 'MS': 'Campo Grande',
+            'MG': 'Belo Horizonte', 'PA': 'Belém', 'PB': 'João Pessoa', 'PR': 'Curitiba',
+            'PE': 'Recife', 'PI': 'Teresina', 'RJ': 'Rio de Janeiro', 'RN': 'Natal',
+            'RS': 'Porto Alegre', 'RO': 'Porto Velho', 'RR': 'Boa Vista', 'SC': 'Florianópolis',
+            'SP': 'São Paulo', 'SE': 'Aracaju', 'TO': 'Palmas'
+        };
+
+        fetch(url)
+            .then(function(response) { return response.json(); })
+            .then(function(municipios) {
+                cidadeSelect.innerHTML = '<option value="">' + {{ __("Selecione a cidade...", "brasilferiados")|json_encode|raw }} + '</option>';
+                var capitalNome = capitais[uf];
+                for (var i = 0; i < municipios.length; i++) {
+                    var m = municipios[i];
+                    var opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = m.nome;
+                    if (preSelectIbge && String(m.id) === String(preSelectIbge)) {
+                        opt.selected = true;
+                    } else if (!preSelectIbge && m.nome === capitalNome) {
+                        opt.selected = true;
+                    }
+                    cidadeSelect.appendChild(opt);
+                }
+                cidadeSelect.disabled = false;
+            })
+            .catch(function(err) {
+                cidadeSelect.innerHTML = '<option value="">' + {{ __("Erro ao carregar cidades", "brasilferiados")|json_encode|raw }} + '</option>';
+                cidadeSelect.disabled = false;
+                console.error('Erro ao carregar municípios do IBGE:', err);
+            });
+    }
+
+    ufSelect.addEventListener('change', function() {
+        carregarCidades(this.value, null);
+    });
+
+    if (savedUf) {
+        carregarCidades(savedUf, savedIbge);
+    }
+})();
+
+(function() {
+    var formConfig = document.getElementById('form_config_provider');
+    if (!formConfig) return;
+
+    formConfig.addEventListener('submit', function(e) {
+        var providerSelect = document.getElementById('api_provider_select');
+        if (!providerSelect) return;
+        
+        var provider = providerSelect.value;
+        var isValid = true;
+        
+        var rows = document.querySelectorAll('.provider-field-' + provider);
+        for (var i = 0; i < rows.length; i++) {
+            var labelCell = rows[i].querySelector('td:first-child');
+            if (labelCell && labelCell.innerHTML.indexOf('*') !== -1) {
+                var input = rows[i].querySelector('input, select, textarea');
+                if (input && input.value.trim() === '') {
+                    isValid = false;
+                    break;
+                }
+            }
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert({{ __("Por favor, preencha todos os campos obrigatórios (*) do provedor selecionado.", "brasilferiados")|json_encode|raw }});
+        }
+    });
+})();
+</script>
