@@ -206,6 +206,7 @@ class Sync extends CommonDBTM {
             'calendarsId'       => $calendarsId,
             'calendarDropdown'  => $calendarDropdown,
             'tabnum'            => $tabnum,
+            'isDarkMode'        => str_contains((string)($_SESSION['glpipalette'] ?? ''), 'dark'),
             'isAllTab'          => $isAllTab,
         ];
     }

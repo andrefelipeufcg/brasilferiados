@@ -3,9 +3,8 @@
     <input type='hidden' name='update_config' value='1'>
     <input type='hidden' name='update_provider' value='1'>
 
-    <div class='center' style='margin-top: 10px;'>
-        <hr class='bf-divider'>
-        <table class='tab_cadre_fixe' style='width: 700px;'>
+    <div class='center' style='margin-top: 5px;'>
+        <table class='tab_cadre_fixe {% if isDarkMode %}bf-dark-theme{% endif %}' style='width: 700px;'>
             <tr><th colspan='2'>{{ __('Provedor', 'brasilferiados') }}</th></tr>
             <tr class='tab_bg_1'>
                 <td style='width: 40%; vertical-align: top; padding-top: 15px;'>{{ __('API de Feriados / Importador', 'brasilferiados') }}</td>
@@ -83,7 +82,6 @@
                 </td>
             </tr>
         </table>
-        <hr class='bf-divider'>
     </div>
 </form>
 

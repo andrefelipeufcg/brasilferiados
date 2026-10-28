@@ -1,10 +1,12 @@
 <style>
-    /* Oculta barra de navegação/ID de item e botão de buscas salvas */
+    /* Oculta barra de navegação/ID de item, botão de buscas salvas e linhas residuais */
     .navigationheader,
     .saved-searches,
     .card-header.main-header,
     h3.navigationheader-title,
-    .bf-main-header {
+    .bf-main-header,
+    hr,
+    hr.bf-divider {
         display: none !important;
     }
 
@@ -23,20 +25,98 @@
     .bf-alert-info i { color: #178abb; margin-right: 5px; }
     .bf-calendar-select .select2-selection--single { max-width: none !important; }
 
-    /* Linha divisória visível em modo claro e escuro */
-    hr.bf-divider {
-        width: 700px;
-        max-width: 100%;
-        margin: 25px auto;
-        border: 0 !important;
-        border-top: 2px solid #5b6b7f !important;
-        opacity: 0.8 !important;
+    /* MODO CLARO (padrão): cabeçalho em cinza claro e fundo limpo */
+    .tab_cadre_fixe {
+        width: 700px !important;
+        max-width: 100% !important;
+        margin: 0 auto 15px auto !important;
+        text-align: left !important;
+        border-spacing: 0 !important;
+        border-collapse: separate !important;
+        border: 1px solid #dcdfe6 !important;
+        border-radius: 4px !important;
+        overflow: hidden !important;
+        background-color: #ffffff !important;
+        color: #1f2937 !important;
     }
-    [data-bs-theme='dark'] hr.bf-divider,
-    [data-theme='dark'] hr.bf-divider,
-    body.theme-dark hr.bf-divider,
-    .theme-dark hr.bf-divider {
-        border-top: 2px solid #7c8ba1 !important;
-        opacity: 1 !important;
+    .tab_cadre_fixe th {
+        background-color: #e9ecef !important;
+        color: #1f2937 !important;
+        font-size: 1.1em !important;
+        font-weight: bold !important;
+        padding: 9px 12px !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        text-align: left !important;
+        border-bottom: 1px solid #dcdfe6 !important;
+    }
+    .tab_cadre_fixe td {
+        padding: 7px 12px !important;
+        border-bottom: 1px solid #e9ecef !important;
+        background-color: transparent !important;
+        color: inherit !important;
+    }
+    .tab_cadre_fixe tr:last-child td {
+        border-bottom: 0 !important;
+    }
+    .tab_cadre_fixe tr.tab_bg_2 {
+        background-color: #f1f3f5 !important;
+    }
+
+    /* MODO ESCURO (ativado quando .bf-dark-theme estiver presente) */
+    .bf-dark-theme.tab_cadre_fixe {
+        border-color: #2b384e !important;
+        background-color: #172131 !important;
+        color: #e6edf7 !important;
+    }
+    .bf-dark-theme.tab_cadre_fixe th {
+        background-color: #202d42 !important;
+        color: #e6edf7 !important;
+        border-bottom: 1px solid #2b384e !important;
+    }
+    .bf-dark-theme.tab_cadre_fixe td {
+        border-bottom: 1px solid #243044 !important;
+        background-color: transparent !important;
+        color: #d1d5db !important;
+    }
+    .bf-dark-theme.tab_cadre_fixe tr.tab_bg_2 {
+        background-color: #182335 !important;
     }
 </style>
+
+<script>
+(function() {
+    function updateTheme() {
+        var isDark = false;
+        try {
+            var isDarkVar = getComputedStyle(document.documentElement).getPropertyValue('--is-dark').trim();
+            if (isDarkVar === 'true') {
+                isDark = true;
+            } else if (isDarkVar === 'false') {
+                isDark = false;
+            } else {
+                var bg = window.getComputedStyle(document.body).backgroundColor;
+                var match = bg.match(/\d+/g);
+                if (match && match.length >= 3) {
+                    var brightness = (parseInt(match[0]) * 299 + parseInt(match[1]) * 587 + parseInt(match[2]) * 114) / 1000;
+                    if (brightness < 128) {
+                        isDark = true;
+                    }
+                }
+            }
+        } catch(e) {}
+
+        var tables = document.querySelectorAll('.tab_cadre_fixe');
+        for (var i = 0; i < tables.length; i++) {
+            if (isDark) {
+                tables[i].classList.add('bf-dark-theme');
+            } else {
+                tables[i].classList.remove('bf-dark-theme');
+            }
+        }
+    }
+    updateTheme();
+    setTimeout(updateTheme, 50);
+    setTimeout(updateTheme, 200);
+})();
+</script>

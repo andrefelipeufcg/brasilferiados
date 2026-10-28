@@ -3,11 +3,8 @@
     <input type='hidden' name='update_config' value='1'>
     <input type='hidden' name='update_automatic' value='1'>
 
-    <div class='center' style='margin-top: 10px;'>
-        {% if not isAllTab %}
-            <hr class='bf-divider'>
-        {% endif %}
-        <table class='tab_cadre_fixe' style='width: 700px;'>
+    <div class='center' style='margin-top: 5px;'>
+        <table class='tab_cadre_fixe {% if isDarkMode %}bf-dark-theme{% endif %}' style='width: 700px;'>
             <tr><th colspan='2'>{{ __('Sincronização Automática', 'brasilferiados') }}</th></tr>
             <tr class='tab_bg_1'>
                 <td style='width: 40%; vertical-align: top; padding-top: 15px;'>{{ __('Sincronização automática de Ano Novo', 'brasilferiados') }}</td>
@@ -27,6 +24,5 @@
                 </td>
             </tr>
         </table>
-        <hr class='bf-divider'>
     </div>
 </form>
