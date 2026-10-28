@@ -140,6 +140,7 @@ class Sync extends CommonDBTM {
 
         $loadedYear  = $anoAtual;
         $apiHolidays = [];
+        $apiRemover  = [];
         $isLoaded    = false;
 
         if (isset($_REQUEST['load_national'])) {
@@ -149,6 +150,7 @@ class Sync extends CommonDBTM {
             }
             $apiResult = self::fetchFromProvider($loadedYear, $item->fields);
             $apiHolidays = $apiResult['feriados'] ?? [];
+            $apiRemover = $apiResult['remover'] ?? [];
             if (!empty($apiResult['erros'])) {
                 foreach ($apiResult['erros'] as $err) {
                     Session::addMessageAfterRedirect($err, false, ERROR);
@@ -159,6 +161,7 @@ class Sync extends CommonDBTM {
             $loadedYear = $anoAtual;
             $apiResult = self::fetchFromProvider($loadedYear, $item->fields);
             $apiHolidays = $apiResult['feriados'] ?? [];
+            $apiRemover = $apiResult['remover'] ?? [];
             $isLoaded = true;
         }
 
@@ -206,6 +209,7 @@ class Sync extends CommonDBTM {
             'isActive'          => $isActive,
             'loadedYear'        => $loadedYear,
             'apiHolidays'       => $apiHolidays,
+            'apiRemover'        => $apiRemover,
             'isLoaded'          => $isLoaded,
             'feriadosLocais'    => $feriadosLocais,
             'calendarsId'       => $calendarsId,
@@ -256,16 +260,25 @@ class Sync extends CommonDBTM {
         return self::fetchFromProvider($year);
     }
 
-    public static function sincronizarFeriados(int $year, ?array $feriadosNacionais = null, bool $isAuto = false, int $manualCalendarId = 0, ?array $feriadosLocaisSelecionados = null): array {
+    public static function sincronizarFeriados(
+        int $year,
+        ?array $feriadosNacionais = null,
+        bool $isAuto = false,
+        int $manualCalendarId = 0,
+        ?array $feriadosLocaisSelecionados = null,
+        ?array $feriadosRemover = null
+    ): array {
         $resultado = [
             'inseridos' => 0,
             'ignorados' => 0,
+            'removidos' => 0,
             'erros'     => [],
         ];
 
         if ($feriadosNacionais === null) {
             $apiResult = self::fetchFromProvider($year);
             $feriadosNacionais = $apiResult['feriados'];
+            $feriadosRemover = $apiResult['remover'] ?? [];
             if (!empty($apiResult['erros'])) {
                 $resultado['erros'] = array_merge($resultado['erros'], $apiResult['erros']);
             }
@@ -278,6 +291,16 @@ class Sync extends CommonDBTM {
             if ($calendarsId === 0) {
                 $resultado['erros'][] = __('Calendário Principal não configurado. Sincronização cancelada.', 'brasilferiados');
                 return $resultado;
+            }
+        }
+
+        // Processar remoções de datas alteradas por portarias de alteração
+        if (!empty($feriadosRemover) && is_array($feriadosRemover)) {
+            foreach ($feriadosRemover as $rem) {
+                $dataRemover = $rem['date'] ?? '';
+                if (!empty($dataRemover)) {
+                    self::removerFeriado($dataRemover, $calendarsId, $resultado);
+                }
             }
         }
 
@@ -329,11 +352,12 @@ class Sync extends CommonDBTM {
         $resultado = self::sincronizarFeriados($year, null, true);
 
         $msg = sprintf(
-            __('Ano %d — Provedor: %s | Inseridos: %d | Ignorados (duplicados): %d', 'brasilferiados'),
+            __('Ano %d — Provedor: %s | Inseridos: %d | Ignorados (duplicados): %d | Removidos: %d', 'brasilferiados'),
             $year,
             $provider->getName(),
             $resultado['inseridos'],
-            $resultado['ignorados']
+            $resultado['ignorados'],
+            $resultado['removidos']
         );
         $task->log($msg);
 
@@ -416,6 +440,44 @@ class Sync extends CommonDBTM {
 
         if ($calendarsId > 0) {
             self::vincularFeriadoAoCalendario($feriadoId, $calendarsId);
+        }
+    }
+
+    private static function removerFeriado(
+        string $data,
+        int    $calendarsId,
+        array  &$resultado
+    ): void {
+        global $DB;
+
+        $existente = $DB->request([
+            'SELECT' => ['id'],
+            'FROM'   => 'glpi_holidays',
+            'WHERE'  => [
+                'begin_date' => $data,
+                'end_date'   => $data,
+            ],
+        ]);
+
+        if (count($existente) === 0) {
+            return;
+        }
+
+        foreach ($existente as $row) {
+            $feriadoId = (int)$row['id'];
+
+            // Desvincular do calendário
+            if ($calendarsId > 0) {
+                $DB->delete('glpi_calendars_holidays', [
+                    'calendars_id' => $calendarsId,
+                    'holidays_id'  => $feriadoId,
+                ]);
+            }
+
+            // Remover o feriado
+            $feriado = new Holiday();
+            $feriado->delete(['id' => $feriadoId], true);
+            $resultado['removidos']++;
         }
     }
 
