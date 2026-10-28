@@ -119,6 +119,44 @@
         background-color: #182335 !important;
     }
 
+    /* Destaques para tabela de datas alteradas por portaria */
+    .tab_cadre_fixe th.bf-amendment-header {
+        background-color: #fff3cd !important;
+        color: #856404 !important;
+        border-bottom: 1px solid #ffeeba !important;
+    }
+    .bf-dark-theme.tab_cadre_fixe th.bf-amendment-header,
+    [data-bs-theme='dark'] .tab_cadre_fixe th.bf-amendment-header {
+        background-color: #3d2f14 !important;
+        color: #ffd43b !important;
+        border-bottom: 1px solid #57431c !important;
+    }
+
+    .bf-date-removed,
+    .bf-date-removed s,
+    .bf-date-removed strong {
+        color: #dc3545 !important;
+    }
+    .bf-dark-theme .bf-date-removed,
+    .bf-dark-theme .bf-date-removed s,
+    .bf-dark-theme .bf-date-removed strong,
+    [data-bs-theme='dark'] .bf-date-removed,
+    [data-bs-theme='dark'] .bf-date-removed s,
+    [data-bs-theme='dark'] .bf-date-removed strong {
+        color: #ff6b6b !important;
+    }
+
+    .bf-date-replacement,
+    .bf-date-replacement strong {
+        color: #28a745 !important;
+    }
+    .bf-dark-theme .bf-date-replacement,
+    .bf-dark-theme .bf-date-replacement strong,
+    [data-bs-theme='dark'] .bf-date-replacement,
+    [data-bs-theme='dark'] .bf-date-replacement strong {
+        color: #51cf66 !important;
+    }
+
     /* Tabelas de dados tabulares responsivas (sobrescreve o display: block do GLPI em dispositivos móveis) */
     .bf-table-wrapper {
         width: 700px;
