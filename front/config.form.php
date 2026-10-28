@@ -48,7 +48,7 @@ if (isset($_POST['update_config'])) {
     Session::checkValidSessionId();
 
     if (isset($_POST['update_automatic'])) {
-        $isActive = isset($_POST['is_active']) ? 1 : 0;
+        $isActive = !empty($_POST['is_active']) ? 1 : 0;
         $config->update([
             'id'        => 1,
             'is_active' => $isActive,

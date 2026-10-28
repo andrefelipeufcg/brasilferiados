@@ -22,10 +22,10 @@
             </tr>
 
             <tr class='tab_bg_2'>
-                <th style='width: 20%; text-align: center;'>{{ __('Data', 'brasilferiados') }}</th>
-                <th style='text-align: left;'>{{ __('Nome do Feriado', 'brasilferiados') }}</th>
-                <th style='width: 15%; text-align: center;'>{{ __('Recorrente', 'brasilferiados') }}</th>
-                <th style='width: 15%; text-align: center;'>{{ __('Ações', 'brasilferiados') }}</th>
+                <th class='center' style='width: 20%; text-align: center !important;'>{{ __('Data', 'brasilferiados') }}</th>
+                <th class='left' style='text-align: left !important;'>{{ __('Nome do Feriado', 'brasilferiados') }}</th>
+                <th class='center' style='width: 15%; text-align: center !important;'>{{ __('Recorrente', 'brasilferiados') }}</th>
+                <th class='center' style='width: 15%; text-align: center !important;'>{{ __('Ações', 'brasilferiados') }}</th>
             </tr>
             
             {% if not isLoaded %}
@@ -62,7 +62,7 @@
                     
                     <tr class='tab_bg_1' id='row_nat_{{ idx }}'>
                         <td class='center'><strong>{{ dataFormatada }}</strong></td>
-                        <td id='name_nat_{{ idx }}'>{{ f.name }}</td>
+                        <td class='left' id='name_nat_{{ idx }}' style='text-align: left;'>{{ f.name }}</td>
                         <td class='center' id='rec_nat_{{ idx }}'>{{ textoRecorrente }}</td>
                         <td class='center' style='white-space: nowrap;'>
                             <button type="button" class="btn btn-sm btn-outline-primary" title="Editar" style="margin-right: 5px;" onclick="abrirModalFeriadoNacional({{ idx }}, '{{ dataFormatada }}', {{ f.name|json_encode|escape('html_attr') }}, {{ isPerpetualInt }})">
@@ -83,10 +83,10 @@
     <table class='tab_cadre_fixe {% if isDarkMode %}bf-dark-theme{% endif %}' style='width: 700px;'>
         <tr><th colspan='4'>{{ __('Feriados Locais', 'brasilferiados') }}</th></tr>
         <tr class='tab_bg_2'>
-            <th style='width: 20%; text-align: center;'>{{ __('Data', 'brasilferiados') }}</th>
-            <th style='text-align: left;'>{{ __('Nome do Feriado', 'brasilferiados') }}</th>
-            <th style='width: 15%; text-align: center;'>{{ __('Recorrente', 'brasilferiados') }}</th>
-            <th style='width: 20%; text-align: center;'>{{ __('Ações', 'brasilferiados') }}</th>
+            <th class='center' style='width: 20%; text-align: center !important;'>{{ __('Data', 'brasilferiados') }}</th>
+            <th class='left' style='text-align: left !important;'>{{ __('Nome do Feriado', 'brasilferiados') }}</th>
+            <th class='center' style='width: 15%; text-align: center !important;'>{{ __('Recorrente', 'brasilferiados') }}</th>
+            <th class='center' style='width: 15%; text-align: center !important;'>{{ __('Ações', 'brasilferiados') }}</th>
         </tr>
         
         {% if feriadosLocais is empty %}
@@ -102,7 +102,7 @@
                 
                 <tr class='tab_bg_1'>
                     <td class='center'><strong>{{ dataFormatada }}</strong></td>
-                    <td>{{ fl.nome }}</td>
+                    <td class='left' style='text-align: left;'>{{ fl.nome }}</td>
                     <td class='center'>{{ is_perpetual ? __('Sim', 'brasilferiados') : __('Não', 'brasilferiados') }}</td>
                     <td class='center' style='white-space: nowrap;'>
                         <button type="button" class="btn btn-sm btn-outline-primary" title="Editar" style="margin-right: 5px;" onclick="abrirModalFeriado({{ fl.id }}, {{ fl.dia }}, {{ fl.mes }}, {{ fl.nome|json_encode|escape('html_attr') }}, {{ is_perpetual }})">
