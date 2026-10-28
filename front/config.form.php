@@ -2,7 +2,9 @@
 /**
  * -----------------------------------------------------------------------
  * Brasil Feriados — front/config.form.php
- * Interface de configuração com suporte nativo a abas do GLPI.
+ * Interface de configuração: provedor de API, automação, calendário,
+ * grid de feriados locais e sincronização manual.
+ * Configuração completa com suporte nativo a abas do GLPI.
  * -----------------------------------------------------------------------
  */
 
@@ -177,16 +179,28 @@ if (isset($_POST['sync_now'])) {
                 }
             }
         }
-        $resultado = Sync::sincronizarFeriados($year, $nacionais, false, $manualCalendarId, $localHolidays);
+        $remocoes = [];
+        $removeDates = $_POST['remove_holidays'] ?? [];
+        if (is_array($removeDates)) {
+            foreach ($removeDates as $rd) {
+                if (isset($rd['date'])) {
+                    $remocoes[] = ['date' => $rd['date']];
+                }
+            }
+        }
+
+        $resultado = Sync::sincronizarFeriados($year, $nacionais, false, $manualCalendarId, $localHolidays, $remocoes);
     } else {
         $resultado = Sync::sincronizarFeriados($year, null, false, $manualCalendarId);
     }
 
+    $removidos = $resultado['removidos'] ?? 0;
     $msg = sprintf(
-        __('Ano %d — Inseridos: %d | Ignorados (duplicados): %d', 'brasilferiados'),
+        __('Ano %d — Inseridos: %d | Ignorados (duplicados): %d | Removidos: %d', 'brasilferiados'),
         $year,
         $resultado['inseridos'],
-        $resultado['ignorados']
+        $resultado['ignorados'],
+        $removidos
     );
     Session::addMessageAfterRedirect($msg, true, INFO);
 

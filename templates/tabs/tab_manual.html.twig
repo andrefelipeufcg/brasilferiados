@@ -85,6 +85,34 @@
     </form>
 </div>
 
+{% if isLoaded and apiRemover is defined and apiRemover is not empty %}
+<div class='center' style='margin-top: 10px;'>
+    <div class='bf-table-wrapper'>
+        <table class='tab_cadre_fixe bf-table-responsive {% if isDarkMode %}bf-dark-theme{% endif %}' style='width: 700px;'>
+            <tr><th colspan='3' style='background-color: #fff3cd; color: #856404;'>
+                <i class='fas fa-exchange-alt'></i> {{ __('Datas alteradas por portaria de alteração (serão removidas ao sincronizar)', 'brasilferiados') }}
+            </th></tr>
+            <tr class='tab_bg_2'>
+                <th style='width: 20%; text-align: center;'>{{ __('Data original (remover)', 'brasilferiados') }}</th>
+                <th style='text-align: left;'>{{ __('Nome', 'brasilferiados') }}</th>
+                <th style='width: 25%; text-align: center;'>{{ __('Substituída por', 'brasilferiados') }}</th>
+            </tr>
+            {% for idx, rem in apiRemover %}
+                {% set partesOrig = rem.date|split('-') %}
+                {% set dataOrigFormatada = (partesOrig|length == 3) ? (partesOrig[2] ~ '/' ~ partesOrig[1]) : rem.date %}
+                {% set partesNova = rem.replaced_by|split('-') %}
+                {% set dataNovaFormatada = (partesNova|length == 3) ? (partesNova[2] ~ '/' ~ partesNova[1]) : rem.replaced_by %}
+                <tr class='tab_bg_1' id='row_rem_{{ idx }}'>
+                    <td class='center' style='color: #dc3545;'><strong><s>{{ dataOrigFormatada }}</s></strong></td>
+                    <td style='text-align: left;'>{{ rem.name }}</td>
+                    <td class='center' style='color: #28a745;'><strong>{{ dataNovaFormatada }}</strong></td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endif %}
+
 <div class='center' style='margin-top: 10px;'>
     <div class='bf-table-wrapper'>
         <table class='tab_cadre_fixe bf-table-responsive {% if isDarkMode %}bf-dark-theme{% endif %}'>
@@ -161,6 +189,11 @@
         
         {% if isLoaded %}
             <input type='hidden' name='loaded_year' value='{{ loadedYear }}'>
+        {% endif %}
+        {% if isLoaded and apiRemover is defined and apiRemover is not empty %}
+            {% for idx, rem in apiRemover %}
+                <input type='hidden' name='remove_holidays[{{ idx }}][date]' value='{{ rem.date }}'>
+            {% endfor %}
         {% endif %}
         {% for fl in feriadosLocais %}
             <input type='hidden' id='selected_local_{{ fl.id }}' name='local_holidays[{{ fl.id }}][selected]' value='1'>
